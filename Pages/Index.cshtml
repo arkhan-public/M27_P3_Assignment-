@@ -1,0 +1,105 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="row">
+    <div class="col-md-9">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Latest Questions</h2>
+            <a href="/Questions/Ask" class="btn btn-primary" id="askBtn" style="display:none;">Ask Question</a>
+        </div>
+
+        @if (Model.Questions.Any())
+        {
+            foreach (var question in Model.Questions)
+            {
+                <div class="card question-card mb-3">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-2 text-center">
+                                <div class="mb-2">
+                                    <strong>@question.VoteCount</strong>
+                                    <div class="text-muted small">votes</div>
+                                </div>
+                                <div class="mb-2">
+                                    <strong class="@(question.Answers.Any(a => a.IsAccepted) ? "text-success" : "")">
+                                        @question.Answers.Count
+                                    </strong>
+                                    <div class="text-muted small">answers</div>
+                                </div>
+                                <div>
+                                    <strong>@question.ViewCount</strong>
+                                    <div class="text-muted small">views</div>
+                                </div>
+                            </div>
+                            <div class="col-md-10">
+                                <h5>
+                                    <a href="/Questions/Details?id=@question.Id" class="text-decoration-none">
+                                        @question.Title
+                                    </a>
+                                </h5>
+                                <p class="text-muted mb-2">
+                                    @(question.Body.Length > 200 ? question.Body.Substring(0, 200) + "..." : question.Body)
+                                </p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        @foreach (var tag in question.Tags)
+                                        {
+                                            <a href="/Questions?tag=@tag.Name" class="tag text-decoration-none me-1">@tag.Name</a>
+                                        }
+                                    </div>
+                                    <div class="text-muted small">
+                                        asked @question.CreatedAt.ToString("MMM dd, yyyy") by <strong>@question.User.Username</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="alert alert-info">
+                No questions yet. Be the first to ask one!
+            </div>
+        }
+
+        <div class="text-center mt-3">
+            <a href="/Questions" class="btn btn-outline-primary">View All Questions</a>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header">
+                <strong>Popular Tags</strong>
+            </div>
+            <div class="card-body">
+                @if (Model.PopularTags.Any())
+                {
+                    @foreach (var tag in Model.PopularTags)
+                    {
+                        <a href="/Questions?tag=@tag.Name" class="tag text-decoration-none d-inline-block mb-2">
+                            @tag.Name <span class="badge bg-secondary">@tag.Questions.Count</span>
+                        </a>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted">No tags yet</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        if (getToken()) {
+            document.getElementById('askBtn').style.display = 'block';
+        }
+    </script>
+}

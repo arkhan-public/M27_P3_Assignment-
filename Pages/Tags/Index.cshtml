@@ -1,0 +1,40 @@
+@page
+@model TagsIndexModel
+@{
+    ViewData["Title"] = "Tags";
+}
+
+<h2 class="mb-4">Tags</h2>
+
+<p class="text-muted">
+    A tag is a keyword or label that categorizes your question with other, similar questions.
+</p>
+
+<div class="row">
+    @if (Model.Tags.Any())
+    {
+        @foreach (var tag in Model.Tags)
+        {
+            <div class="col-md-3 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <a href="/Questions?tag=@tag.Name" class="text-decoration-none">@tag.Name</a>
+                        </h5>
+                        <p class="text-muted mb-0">
+                            @tag.Questions.Count question@(tag.Questions.Count != 1 ? "s" : "")
+                        </p>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="col-12">
+            <div class="alert alert-info">
+                No tags available yet.
+            </div>
+        </div>
+    }
+</div>

@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q&A Web Application - Complete Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --dark-color: #212529;
+            --light-color: #f8f9fa;
+            --code-bg: #2d2d2d;
+            --sidebar-width: 280px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #fff;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .sidebar h1 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .sidebar .version {
+            font-size: 0.875rem;
+            opacity: 0.8;
+            margin-bottom: 30px;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-menu li {
+            margin-bottom: 5px;
+        }
+
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            display: block;
+            padding: 8px 12px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .nav-menu a:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateX(5px);
+        }
+
+        .nav-submenu {
+            list-style: none;
+            margin-left: 15px;
+            margin-top: 5px;
+        }
+
+        .nav-submenu a {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 40px 60px;
+            max-width: 1200px;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 0;
+            margin: -40px -60px 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.25rem;
+            opacity: 0.9;
+        }
+
+        .badges {
+            margin-top: 20px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            font-size: 0.875rem;
+            margin: 0 5px;
+        }
+
+        /* Sections */
+        section {
+            margin-bottom: 60px;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: var(--dark-color);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--primary-color);
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: var(--dark-color);
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        h4 {
+            font-size: 1.25rem;
+            color: var(--primary-color);
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        /* Code Blocks */
+        pre {
+            background: var(--code-bg);
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+        }
+
+        .inline-code {
+            background: #e9ecef;
+            color: #c7254e;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin-left: 20px;
+            margin-bottom: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        table th {
+            background: var(--primary-color);
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        table td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        table tr:hover {
+            background: var(--light-color);
+        }
+
+        /* Alert Boxes */
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: #d1e7dd;
+            border-color: var(--success-color);
+            color: #0f5132;
+        }
+
+        .alert-info {
+            background: #cff4fc;
+            border-color: #0dcaf0;
+            color: #055160;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border-color: var(--warning-color);
+            color: #664d03;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            border-color: var(--danger-color);
+            color: #842029;
+        }
+
+        /* Feature Grid */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .feature-card {
+            background: var(--light-color);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .feature-card h4 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+
+        /* Tech Stack */
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .tech-badge {
+            background: var(--primary-color);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        /* Quick Links */
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .quick-link {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .quick-link:hover {
+            transform: translateY(-3px);
+        }
+
+        .quick-link h4 {
+            color: white;
+            margin: 0 0 10px 0;
+        }
+
+        /* API Endpoint */
+        .api-endpoint {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .api-endpoint-header {
+            background: var(--light-color);
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .api-method {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.875rem;
+            margin-right: 10px;
+        }
+
+        .method-post {
+            background: #198754;
+            color: white;
+        }
+
+        .method-get {
+            background: #0dcaf0;
+            color: white;
+        }
+
+        .method-put {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .method-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .api-endpoint-body {
+            padding: 15px;
+        }
+
+        /* Checklist */
+        .checklist {
+            list-style: none;
+            margin-left: 0;
+        }
+
+        .checklist li {
+            padding-left: 30px;
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .checklist li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--success-color);
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--dark-color);
+            color: white;
+            padding: 40px 60px;
+            margin: 60px -60px -40px;
+            text-align: center;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                position: relative;
+                height: auto;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+
+            .header {
+                margin: -20px -20px 20px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .footer {
+                margin: 40px -20px -20px;
+                padding: 20px;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            .sidebar {
+                display: none;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <h1>Q&A Application</h1>
+            <div class="version">Version 1.0.0 | ASP.NET Core 8.0</div>
+
+            <ul class="nav-menu">
+                <li><a href="#overview">📖 Overview</a></li>
+                <li><a href="#features">✨ Features</a></li>
+                <li><a href="#tech-stack">🛠️ Technology Stack</a></li>
+                <li><a href="#installation">🚀 Installation</a></li>
+                <li>
+                    <a href="#getting-started">🎯 Getting Started</a>
+                    <ul class="nav-submenu">
+                        <li><a href="#running">Running the App</a></li>
+                        <li><a href="#login">Login Credentials</a></li>
+                        <li><a href="#usage">How to Use</a></li>
+                    </ul>
+                </li>
+                <li><a href="#architecture">🏗️ Architecture</a></li>
+                <li><a href="#database">🗄️ Database</a></li>
+                <li>
+                    <a href="#api">🔌 API Documentation</a>
+                    <ul class="nav-submenu">
+                        <li><a href="#api-auth">Authentication</a></li>
+                        <li><a href="#api-questions">Questions</a></li>
+                        <li><a href="#api-answers">Answers</a></li>
+                        <li><a href="#api-comments">Comments</a></li>
+                        <li><a href="#api-votes">Voting</a></li>
+                    </ul>
+                </li>
+                <li><a href="#jwt">🔐 JWT Authentication</a></li>
+                <li><a href="#security">🛡️ Security</a></li>
+                <li><a href="#troubleshooting">🔧 Troubleshooting</a></li>
+                <li><a href="#deployment">🚢 Deployment</a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <h1>Q&A Web Application</h1>
+                <p>A Production-Ready Stack Overflow Clone</p>
+                <div class="badges">
+                    <span class="badge">ASP.NET Core 8.0</span>
+                    <span class="badge">Entity Framework Core</span>
+                    <span class="badge">JWT Authentication</span>
+                    <span class="badge">Razor Pages</span>
+                    <span class="badge">Bootstrap 5</span>
+                </div>
+            </header>
+
+            <!-- Overview Section -->
+            <section id="overview">
+                <h2>📖 Overview</h2>
+                <p>
+                    A fully functional Question and Answer (Q&A) web application similar to Stack Overflow,
+                    built with ASP.NET Core, Razor Pages, Entity Framework Core, and JWT authentication.
+                    This application demonstrates best practices in modern web development including clean
+                    architecture, dependency injection, and comprehensive security measures.
+                </p>
+
+                <div class="alert alert-success">
+                    <strong>✅ Production Ready!</strong> This application follows industry best practices and
+                    is ready for deployment with proper configuration.
+                </div>
+
+                <div class="quick-links">
+                    <a href="#getting-started" class="quick-link">
+                        <h4>🚀 Quick Start</h4>
+                        <p>Get up and running in minutes</p>
+                    </a>
+                    <a href="#api" class="quick-link">
+                        <h4>📚 API Docs</h4>
+                        <p>Complete API reference</p>
+                    </a>
+                    <a href="#database" class="quick-link">
+                        <h4>🗄️ Database</h4>
+                        <p>Schema and relationships</p>
+                    </a>
+                </div>
+            </section>
+
+            <!-- Features Section -->
+            <section id="features">
+                <h2>✨ Features</h2>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>🔐 User Authentication</h4>
+                        <ul>
+                            <li>JWT-based authentication</li>
+                            <li>User registration & login</li>
+                            <li>Password hashing (BCrypt)</li>
+                            <li>Token expiration (1 hour)</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <h4>❓ Questions</h4>
+                        <ul>
+                            <li>Ask questions</li>
+                            <li>Edit own questions</li>
+                            <li>Delete own questions</li>
+                            <li>View count tracking</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <h4>💡 Answers</h4>
+                        <ul>
+                            <li>Post answers</li>
+                            <li>Edit own answers</li>
+                            <li>Delete own answers</li>
+                            <li>Accept answers (owner only)</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <h4>💬 Comments</h4>
+                        <ul>
+                            <li>Comment on questions</li>
+                            <li>Comment on answers</li>
+                            <li>Character limit (500)</li>
+                            <li>Timestamped comments</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <h4>👍 Voting System</h4>
+                        <ul>
+                            <li>Upvote questions/answers</li>
+                            <li>Downvote questions/answers</li>
+                            <li>One vote per user</li>
+                            <li>Vote count tracking</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <h4>🏷️ Tags</h4>
+                        <ul>
+                            <li>Tag-based categorization</li>
+                            <li>Auto-create tags</li>
+                            <li>Filter by tags</li>
+                            <li>Popular tags display</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <h4>🔍 Search & Filter</h4>
+                        <ul>
+                            <li>Search by title/body</li>
+                            <li>Filter by tags</li>
+                            <li>Sort by date</li>
+                            <li>Quick navigation</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <h4>🔓 Anonymous Access</h4>
+                        <ul>
+                            <li>View questions</li>
+                            <li>Read answers</li>
+                            <li>Browse tags</li>
+                            <li>Search content</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Technology Stack -->
+            <section id="tech-stack">
+                <h2>🛠️ Technology Stack</h2>
+
+                <h3>Backend</h3>
+                <div class="tech-stack">
+                    <span class="tech-badge">ASP.NET Core 8.0</span>
+                    <span class="tech-badge">C# 12</span>
+                    <span class="tech-badge">Entity Framework Core 8.0</span>
+                    <span class="tech-badge">SQL Server</span>
+                </div>
+
+                <h3>Frontend</h3>
+                <div class="tech-stack">
+                    <span class="tech-badge">Razor Pages</span>
+                    <span class="tech-badge">Bootstrap 5</span>
+                    <span class="tech-badge">JavaScript (Vanilla)</span>
+                    <span class="tech-badge">HTML5</span>
+                    <span class="tech-badge">CSS3</span>
+                </div>
+
+                <h3>Authentication & Security</h3>
+                <div class="tech-stack">
+                    <span class="tech-badge">JWT Bearer Token</span>
+                    <span class="tech-badge">BCrypt</span>
+                    <span class="tech-badge">ASP.NET Core Identity</span>
+                </div>
+
+                <h3>Architecture & Patterns</h3>
+                <div class="tech-stack">
+                    <span class="tech-badge">Clean Architecture</span>
+                    <span class="tech-badge">Service Layer</span>
+                    <span class="tech-badge">Dependency Injection</span>
+                    <span class="tech-badge">Repository Pattern</span>
+                    <span class="tech-badge">DTOs</span>
+                </div>
+            </section>
+
+            <!-- Installation Section -->
+            <section id="installation">
+                <h2>🚀 Installation</h2>
+
+                <h3>Prerequisites</h3>
+                <ul class="checklist">
+                    <li>.NET 8.0 SDK or later</li>
+                    <li>SQL Server (LocalDB or SQLEXPRESS)</li>
+                    <li>Visual Studio 2022 / VS Code / Rider (optional)</li>
+                </ul>
+
+                <h3>Step 1: Clone or Download</h3>
+                <p>Navigate to the project directory:</p>
+                <pre><code>cd "D:\08. Projects\Q&A Web Application"</code></pre>
+
+                <h3>Step 2: Configure Database</h3>
+                <p>The application is configured for SQL Server Express. Connection string in <span class="inline-code">appsettings.json</span>:</p>
+                <pre><code>{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost\\SQLEXPRESS;Database=qa_application;Trusted_Connection=True;TrustServerCertificate=True;"
+  }
+}</code></pre>
+
+                <div class="alert alert-info">
+                    <strong>ℹ️ Note:</strong> If using a different SQL Server instance, update the connection string accordingly.
+                </div>
+
+                <h3>Step 3: Install Dependencies</h3>
+                <pre><code>dotnet restore</code></pre>
+
+                <h3>Step 4: Apply Migrations</h3>
+                <pre><code>dotnet ef database update</code></pre>
+
+                <p>This will:</p>
+                <ul>
+                    <li>Create the <span class="inline-code">qa_application</span> database</li>
+                    <li>Create all tables with relationships</li>
+                    <li>Seed default data (tags, demo user, sample question)</li>
+                </ul>
+
+                <h3>Step 5: Run the Application</h3>
+                <pre><code>dotnet run</code></pre>
+
+                <p>Or with hot reload:</p>
+                <pre><code>dotnet watch run</code></pre>
+
+                <div class="alert alert-success">
+                    <strong>✅ Success!</strong> Application available at:
+                    <ul>
+                        <li>HTTP: <a href="http://localhost:5000" target="_blank">http://localhost:5000</a></li>
+                        <li>HTTPS: <a href="https://localhost:5001" target="_blank">https://localhost:5001</a></li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Getting Started -->
+            <section id="getting-started">
+                <h2>🎯 Getting Started</h2>
+
+                <h3 id="running">Running the Application</h3>
+
+                <h4>Method 1: Visual Studio</h4>
+                <ol>
+                    <li>Open <span class="inline-code">QAWebApp.sln</span></li>
+                    <li>Press <strong>F5</strong> or click <strong>Start</strong></li>
+                    <li>Browser opens automatically</li>
+                </ol>
+
+                <h4>Method 2: Command Line</h4>
+                <pre><code>cd "D:\08. Projects\Q&A Web Application"
+dotnet run</code></pre>
+
+                <h4>Method 3: VS Code</h4>
+                <ol>
+                    <li>Open project folder in VS Code</li>
+                    <li>Press <strong>F5</strong> or run <span class="inline-code">dotnet run</span> in terminal</li>
+                </ol>
+
+                <h3 id="login">Login Credentials</h3>
+
+                <div class="alert alert-info">
+                    <h4>Demo Account</h4>
+                    <table>
+                        <tr>
+                            <td><strong>Username:</strong></td>
+                            <td><code>demo</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Password:</strong></td>
+                            <td><code>Demo@123</code></td>
+                        </tr>
+                    </table>
+                </div>
+
+                <h3 id="usage">How to Use</h3>
+
+                <h4>1. Register a New User</h4>
+                <ol>
+                    <li>Click "Register" in navigation</li>
+                    <li>Fill in username (3-50 chars), email, password (min 6 chars)</li>
+                    <li>Click "Register" - you'll be automatically logged in</li>
+                </ol>
+
+                <h4>2. Ask a Question</h4>
+                <ol>
+                    <li>Ensure you're logged in</li>
+                    <li>Click "Ask Question" button</li>
+                    <li>Enter title (10-200 chars), body (20-5000 chars), tags (comma-separated)</li>
+                    <li>Click "Post Question"</li>
+                </ol>
+
+                <h4>3. Answer Questions</h4>
+                <ol>
+                    <li>Navigate to any question detail page</li>
+                    <li>Scroll to "Your Answer" section</li>
+                    <li>Write answer (min 20 chars)</li>
+                    <li>Click "Post Answer"</li>
+                </ol>
+
+                <h4>4. Vote & Comment</h4>
+                <ul>
+                    <li><strong>Vote:</strong> Click ▲ (upvote) or ▼ (downvote)</li>
+                    <li><strong>Comment:</strong> Click "Add a comment" link, type comment, click "Add Comment"</li>
+                </ul>
+
+                <h4>5. Search & Filter</h4>
+                <ul>
+                    <li><strong>Search:</strong> Use search box on Questions page</li>
+                    <li><strong>Filter:</strong> Click any tag to see related questions</li>
+                </ul>
+            </section>
+
+            <!-- Architecture -->
+            <section id="architecture">
+                <h2>🏗️ Architecture</h2>
+
+                <h3>Project Structure</h3>
+                <pre><code>QAWebApp/
+├── Controllers/              # 5 API Controllers
+│   ├── AuthController.cs
+│   ├── QuestionsController.cs
+│   ├── AnswersController.cs
+│   ├── CommentsController.cs
+│   └── VoteController.cs
+│
+├── Services/                 # Business Logic Layer
+│   ├── Interfaces/           # 7 Service Interfaces
+│   │   ├── IUserService.cs
+│   │   ├── IQuestionService.cs
+│   │   ├── IAnswerService.cs
+│   │   ├── ICommentService.cs
+│   │   ├── ITagService.cs
+│   │   ├── IVoteService.cs
+│   │   └── IJwtService.cs
+│   │
+│   └── Implementations/      # 7 Service Implementations
+│       ├── UserService.cs
+│       ├── QuestionService.cs
+│       ├── AnswerService.cs
+│       ├── CommentService.cs
+│       ├── TagService.cs
+│       ├── VoteService.cs
+│       └── JwtService.cs
+│
+├── Models/                   # 6 Entity Models
+│   ├── ApplicationUser.cs
+│   ├── Question.cs
+│   ├── Answer.cs
+│   ├── Comment.cs
+│   ├── Tag.cs
+│   └── Vote.cs
+│
+├── DTOs/                     # Data Transfer Objects
+│   ├── RegisterDto.cs
+│   ├── LoginDto.cs
+│   ├── QuestionCreateDto.cs
+│   ├── AnswerCreateDto.cs
+│   ├── CommentCreateDto.cs
+│   └── VoteDto.cs
+│
+├── Pages/                    # Razor Pages (UI)
+│   ├── Index.cshtml
+│   ├── Login.cshtml
+│   ├── Register.cshtml
+│   ├── Questions/
+│   │   ├── Index.cshtml
+│   │   ├── Ask.cshtml
+│   │   └── Details.cshtml
+│   ├── Tags/
+│   │   └── Index.cshtml
+│   └── Shared/
+│       └── _Layout.cshtml
+│
+├── Data/
+│   └── ApplicationDbContext.cs
+│
+├── Migrations/               # EF Core Migrations
+├── wwwroot/                  # Static Files
+├── Program.cs                # Application Entry Point
+└── appsettings.json          # Configuration</code></pre>
+
+                <h3>Layered Architecture</h3>
+                <pre><code>┌─────────────────────────────────────┐
+│     Presentation Layer              │
+│     (Razor Pages)                   │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│     API Layer                       │
+│     (Controllers)                   │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│     Service Layer                   │
+│     (Business Logic)                │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│     Data Access Layer               │
+│     (EF Core + DbContext)           │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│     Database                        │
+│     (SQL Server)                    │
+└─────────────────────────────────────┘</code></pre>
+
+                <h3>Service Layer Pattern</h3>
+                <ul>
+                    <li><strong>Interfaces:</strong> All services have interfaces for dependency injection</li>
+                    <li><strong>Error Handling:</strong> Try-catch blocks with ILogger in all services</li>
+                    <li><strong>Validation:</strong> Ownership validation and business rules</li>
+                    <li><strong>No Direct Access:</strong> Razor Pages never access DbContext directly</li>
+                </ul>
+            </section>
+
+            <!-- Database Section -->
+            <section id="database">
+                <h2>🗄️ Database Schema</h2>
+
+                <h3>Tables Overview</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Table</th>
+                            <th>Description</th>
+                            <th>Key Columns</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Users</strong></td>
+                            <td>User accounts and authentication</td>
+                            <td>Id, Username, Email, PasswordHash, Reputation</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Questions</strong></td>
+                            <td>User-submitted questions</td>
+                            <td>Id, Title, Body, UserId, VoteCount, ViewCount</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Answers</strong></td>
+                            <td>Answers to questions</td>
+                            <td>Id, Body, QuestionId, UserId, IsAccepted, VoteCount</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Comments</strong></td>
+                            <td>Comments on questions/answers</td>
+                            <td>Id, Body, UserId, QuestionId, AnswerId</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Tags</strong></td>
+                            <td>Categorization tags</td>
+                            <td>Id, Name</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Votes</strong></td>
+                            <td>Upvote/downvote tracking</td>
+                            <td>Id, Type, UserId, QuestionId, AnswerId</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Relationships</h3>
+                <ul>
+                    <li><strong>User → Questions</strong>: One-to-Many (a user can ask many questions)</li>
+                    <li><strong>User → Answers</strong>: One-to-Many (a user can post many answers)</li>
+                    <li><strong>User → Comments</strong>: One-to-Many (a user can make many comments)</li>
+                    <li><strong>User → Votes</strong>: One-to-Many (a user can cast many votes)</li>
+                    <li><strong>Question → Answers</strong>: One-to-Many, Cascade Delete</li>
+                    <li><strong>Question → Comments</strong>: One-to-Many</li>
+                    <li><strong>Question → Tags</strong>: Many-to-Many</li>
+                    <li><strong>Answer → Comments</strong>: One-to-Many</li>
+                </ul>
+
+                <h3>Seed Data</h3>
+                <ul class="checklist">
+                    <li>8 default tags: csharp, aspnet, sql, ef-core, jwt, javascript, html, css</li>
+                    <li>1 demo user (username: demo, password: Demo@123)</li>
+                    <li>1 sample question about JWT authentication</li>
+                    <li>1 accepted answer for the sample question</li>
+                </ul>
+            </section>
+
+            <!-- API Documentation -->
+            <section id="api">
+                <h2>🔌 API Documentation</h2>
+
+                <h3 id="api-auth">Authentication Endpoints</h3>
+
+                <div class="api-endpoint">
+                    <div class="api-endpoint-header">
+                        <span class="api-method method-post">POST</span>
+                        <code>/api/auth/register</code>
+                    </div>
+                    <div class="api-endpoint-body">
+                        <h4>Register New User</h4>
+                        <p><strong>Request Body:</strong></p>
+                        <pre><code>{
+  "username": "john",
+  "email": "john@example.com",
+  "password": "Pass@123"
+}</code></pre>
+                        <p><strong>Response (200 OK):</strong></p>
+                        <pre><code>{
+  "message": "Registration successful",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 2,
+    "username": "john",
+    "email": "john@example.com"
+  }
+}</code></pre>
+                    </div>
+                </div>
+
+                <div class="api-endpoint">
+                    <div class="api-endpoint-header">
+                        <span class="api-method method-post">POST</span>
+                        <code>/api/auth/login</code>
+                    </div>
+                    <div class="api-endpoint-body">
+                        <h4>User Login</h4>
+                        <p><strong>Request Body:</strong></p>
+                        <pre><code>{
+  "usernameOrEmail": "demo",
+  "password": "Demo@123"
+}</code></pre>
+                        <p><strong>Response (200 OK):</strong></p>
+                        <pre><code>{
+  "message": "Login successful",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "username": "demo",
+    "email": "demo@example.com"
+  }
+}</code></pre>
+                    </div>
+                </div>
+
+                <h3 id="api-questions">Questions Endpoints</h3>
+
+                <div class="api-endpoint">
+                    <div class="api-endpoint-header">
+                        <span class="api-method method-post">POST</span>
+                        <code>/api/questions</code>
+                        <span class="inline-code">🔒 Authenticated</span>
+                    </div>
+                    <div class="api-endpoint-body">
+                        <h4>Create Question</h4>
+                        <p><strong>Headers:</strong></p>
+                        <pre><code>Authorization: Bearer {token}</code></pre>
+                        <p><strong>Request Body:</strong></p>
+                        <pre><code>{
+  "title": "How to use Entity Framework Core?",
+  "body": "I'm new to EF Core and want to understand how to use it properly.",
+  "tags": "ef-core, csharp, aspnet"
+}</code></pre>
+                        <p><strong>Response (200 OK):</strong></p>
+                        <pre><code>{
+  "message": "Question created successfully",
+  "questionId": 2
+}</code></pre>
+                    </div>
+                </div>
+
+                <div class="api-endpoint">
+                    <div class="api-endpoint-header">
+                        <span class="api-method method-put">PUT</span>
+                        <code>/api/questions/{id}</code>
+                        <span class="inline-code">🔒 Authenticated, Owner Only</span>
+                    </div>
+                    <div class="api-endpoint-body">
+                        <h4>Update Question</h4>
+                        <p><strong>Headers:</strong></p>
+                        <pre><code>Authorization: Bearer {token}</code></pre>
+                        <p><strong>Request Body:</strong></p>
+                        <pre><code>{
+  "title": "Updated title",
+  "body": "Updated body content",
+  "tags": "ef-core, csharp"
+}</code></pre>
+                    </div>
+                </div>
+
+                <div class="api-endpoint">
+                    <div class="api-endpoint-header">
+                        <span class="api-method method-delete">DELETE</span>
+                        <code>/api/questions/{id}</code>
+                        <span class="inline-code">🔒 Authenticated, Owner Only</span>
+                    </div>
+                    <div class="api-endpoint-body">
+                        <h4>Delete Question</h4>
+                        <p><strong>Headers:</strong></p>
+                        <pre><code>Authorization: Bearer {token}</code></pre>
+                    </div>
+                </div>
+
+                <h3 id="api-answers">Answers Endpoints</h3>
+
+                <div class="api-endpoint">
+                    <div class="api-endpoint-header">
+                        <span class="api-method method-post">POST</span>
+                        <code>/api/answers</code>
+                        <span class="inline-code">🔒 Authenticated</span>
+                    </div>
+                    <div class="api-endpoint-body">
+                        <h4>Create Answer</h4>
+                        <p><strong>Headers:</strong></p>
+                        <pre><code>Authorization: Bearer {token}</code></pre>
+                        <p><strong>Request Body:</strong></p>
+                        <pre><code>{
+  "body": "To use Entity Framework Core, first install the NuGet package...",
+  "questionId": 1
+}</code></pre>
+                        <p><strong>Response (200 OK):</strong></p>
+                        <pre><code>{
+  "message": "Answer posted successfully",
+  "answerId": 2
+}</code></pre>
+                    </div>
+                </div>
+
+                <div class="api-endpoint">
+                    <div class="api-endpoint-header">
+                        <span class="api-method method-post">POST</span>
+                        <code>/api/answers/{id}/accept</code>
+                        <span class="inline-code">🔒 Question Owner Only</span>
+                    </div>
+                    <div class="api-endpoint-body">
+                        <h4>Accept Answer</h4>
+                        <p>Only the question owner can accept an answer.</p>
+                        <p><strong>Headers:</strong></p>
+                        <pre><code>Authorization: Bearer {token}</code></pre>
+                    </div>
+                </div>
+
+                <h3 id="api-comments">Comments Endpoint</h3>
+
+                <div class="api-endpoint">
+                    <div class="api-endpoint-header">
+                        <span class="api-method method-post">POST</span>
+                        <code>/api/comments</code>
+                        <span class="inline-code">🔒 Authenticated</span>
+                    </div>
+                    <div class="api-endpoint-body">
+                        <h4>Create Comment</h4>
+                        <p><strong>Headers:</strong></p>
+                        <pre><code>Authorization: Bearer {token}</code></pre>
+                        <p><strong>Request Body (Comment on Question):</strong></p>
+                        <pre><code>{
+  "body": "Can you provide more details?",
+  "questionId": 1
+}</code></pre>
+                        <p><strong>Request Body (Comment on Answer):</strong></p>
+                        <pre><code>{
+  "body": "Great answer! Thanks for the explanation.",
+  "answerId": 1
+}</code></pre>
+                    </div>
+                </div>
+
+                <h3 id="api-votes">Voting Endpoint</h3>
+
+                <div class="api-endpoint">
+                    <div class="api-endpoint-header">
+                        <span class="api-method method-post">POST</span>
+                        <code>/api/vote</code>
+                        <span class="inline-code">🔒 Authenticated</span>
+                    </div>
+                    <div class="api-endpoint-body">
+                        <h4>Vote on Question or Answer</h4>
+                        <p><strong>Headers:</strong></p>
+                        <pre><code>Authorization: Bearer {token}</code></pre>
+                        <p><strong>Request Body (Upvote Question):</strong></p>
+                        <pre><code>{
+  "questionId": 1,
+  "type": 1
+}</code></pre>
+                        <p><strong>Request Body (Downvote Answer):</strong></p>
+                        <pre><code>{
+  "answerId": 1,
+  "type": -1
+}</code></pre>
+                        <p><strong>Vote Types:</strong></p>
+                        <ul>
+                            <li><code>1</code> = Upvote</li>
+                            <li><code>-1</code> = Downvote</li>
+                        </ul>
+                        <div class="alert alert-info">
+                            <strong>ℹ️ Note:</strong> Clicking the same vote type again removes the vote.
+                            Clicking the opposite vote type changes the vote.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- JWT Authentication -->
+            <section id="jwt">
+                <h2>🔐 JWT Authentication Flow</h2>
+
+                <h3>How It Works</h3>
+                <ol>
+                    <li><strong>User Registration/Login</strong>
+                        <ul>
+                            <li>User submits credentials to <code>/api/auth/register</code> or <code>/api/auth/login</code></li>
+                            <li>Server validates credentials and hashes password using BCrypt</li>
+                            <li>Server generates JWT token with user claims (UserId, Username, Email)</li>
+                            <li>Token returned to client with 1-hour expiration</li>
+                        </ul>
+                    </li>
+                    <li><strong>Token Storage</strong>
+                        <ul>
+                            <li>JWT token stored in browser's localStorage</li>
+                            <li>Username and UserId also stored for UI display</li>
+                        </ul>
+                    </li>
+                    <li><strong>Making Authenticated Requests</strong>
+                        <ul>
+                            <li>Client includes token in Authorization header: <code>Bearer {token}</code></li>
+                            <li>Server validates token using JWT middleware</li>
+                            <li>User identity extracted from token claims</li>
+                        </ul>
+                    </li>
+                    <li><strong>Logout</strong>
+                        <ul>
+                            <li>Client removes token from localStorage</li>
+                            <li>UI updates to show logged-out state</li>
+                        </ul>
+                    </li>
+                </ol>
+
+                <h3>JWT Configuration</h3>
+                <p>JWT settings in <span class="inline-code">appsettings.json</span>:</p>
+                <pre><code>{
+  "Jwt": {
+    "Key": "YourSecretKeyHere",
+    "Issuer": "QAWebApp",
+    "Audience": "QAWebApp"
+  }
+}</code></pre>
+
+                <div class="alert alert-danger">
+                    <strong>⚠️ IMPORTANT:</strong> Change the JWT Key in production to a strong,
+                    random secret key (minimum 32 characters).
+                </div>
+
+                <h3>Token Claims</h3>
+                <p>The JWT token includes the following claims:</p>
+                <ul>
+                    <li><strong>NameIdentifier:</strong> User ID (integer)</li>
+                    <li><strong>Name:</strong> Username (string)</li>
+                    <li><strong>Email:</strong> User email (string)</li>
+                </ul>
+            </section>
+
+            <!-- Security Section -->
+            <section id="security">
+                <h2>🛡️ Security Features</h2>
+
+                <ul class="checklist">
+                    <li>Passwords hashed using BCrypt (salted, one-way encryption)</li>
+                    <li>JWT tokens with expiration (1 hour)</li>
+                    <li>Authorization middleware on protected endpoints</li>
+                    <li>Ownership validation on edit/delete operations</li>
+                    <li>ModelState validation on all inputs</li>
+                    <li>XSS prevention via HTML encoding</li>
+                    <li>No sensitive data exposed in error messages</li>
+                    <li>Unique vote constraints (one vote per user per item)</li>
+                    <li>SQL injection prevention via parameterized queries (EF Core)</li>
+                    <li>HTTPS enforcement (production)</li>
+                </ul>
+
+                <h3>Best Practices Implemented</h3>
+                <ol>
+                    <li><strong>Password Requirements:</strong> Minimum 6 characters (configurable)</li>
+                    <li><strong>Username Requirements:</strong> 3-50 characters, unique</li>
+                    <li><strong>Email Validation:</strong> Valid email format required</li>
+                    <li><strong>Token Expiration:</strong> 1 hour (configurable)</li>
+                    <li><strong>Database Constraints:</strong> Unique indexes on Username and Email</li>
+                </ol>
+            </section>
+
+            <!-- Troubleshooting -->
+            <section id="troubleshooting">
+                <h2>🔧 Troubleshooting</h2>
+
+                <h3>Database Connection Issues</h3>
+                <div class="alert alert-warning">
+                    <p><strong>Problem:</strong> Cannot connect to SQL Server</p>
+                    <p><strong>Solution:</strong></p>
+                    <ol>
+                        <li>Verify SQL Server is running (check Services)</li>
+                        <li>Check connection string in <code>appsettings.json</code></li>
+                        <li>Ensure you have permissions to create databases</li>
+                        <li>Try using <code>Server=(localdb)\\mssqllocaldb</code> for LocalDB</li>
+                    </ol>
+                </div>
+
+                <h3>Migration Issues</h3>
+                <div class="alert alert-warning">
+                    <p><strong>Problem:</strong> Migration fails or database not created</p>
+                    <p><strong>Solution:</strong></p>
+                    <pre><code># Remove last migration
+dotnet ef migrations remove
+
+# Drop and recreate database
+dotnet ef database drop --force
+dotnet ef database update</code></pre>
+                </div>
+
+                <h3>Port Already in Use</h3>
+                <div class="alert alert-warning">
+                    <p><strong>Problem:</strong> Port 5000 or 5001 already in use</p>
+                    <p><strong>Solution:</strong> Change ports in <code>Properties/launchSettings.json</code>:</p>
+                    <pre><code>"applicationUrl": "https://localhost:5002;http://localhost:5003"</code></pre>
+                </div>
+
+                <h3>JWT Token Errors</h3>
+                <div class="alert alert-warning">
+                    <p><strong>Problem:</strong> 401 Unauthorized errors</p>
+                    <p><strong>Solution:</strong></p>
+                    <ul>
+                        <li>Check token is stored in localStorage</li>
+                        <li>Verify token hasn't expired (1 hour)</li>
+                        <li>Ensure Authorization header format: <code>Bearer {token}</code></li>
+                        <li>Login again to get new token</li>
+                    </ul>
+                </div>
+
+                <h3>Build Errors</h3>
+                <div class="alert alert-warning">
+                    <p><strong>Problem:</strong> Project won't build</p>
+                    <p><strong>Solution:</strong></p>
+                    <pre><code># Clean and rebuild
+dotnet clean
+dotnet restore
+dotnet build</code></pre>
+                </div>
+            </section>
+
+            <!-- Deployment Section -->
+            <section id="deployment">
+                <h2>🚢 Production Deployment Checklist</h2>
+
+                <div class="alert alert-danger">
+                    <strong>⚠️ Before deploying to production:</strong>
+                </div>
+
+                <h3>Security Configuration</h3>
+                <ul class="checklist">
+                    <li>Change JWT secret key to strong random value (32+ chars)</li>
+                    <li>Update connection string for production database</li>
+                    <li>Enable HTTPS and HSTS</li>
+                    <li>Configure CORS policies properly</li>
+                    <li>Set secure password requirements</li>
+                    <li>Enable rate limiting</li>
+                    <li>Configure security headers</li>
+                </ul>
+
+                <h3>Performance Optimization</h3>
+                <ul class="checklist">
+                    <li>Enable response compression</li>
+                    <li>Configure caching strategies</li>
+                    <li>Optimize database queries</li>
+                    <li>Add database indexes as needed</li>
+                    <li>Enable static file caching</li>
+                </ul>
+
+                <h3>Monitoring & Logging</h3>
+                <ul class="checklist">
+                    <li>Set up Application Insights</li>
+                    <li>Configure Serilog or NLog</li>
+                    <li>Set up error tracking</li>
+                    <li>Configure health checks</li>
+                    <li>Set up database backups</li>
+                </ul>
+
+                <h3>Environment Configuration</h3>
+                <ul class="checklist">
+                    <li>Set <code>ASPNETCORE_ENVIRONMENT=Production</code></li>
+                    <li>Remove development-only features</li>
+                    <li>Configure proper error pages</li>
+                    <li>Set up reverse proxy (IIS, Nginx, Apache)</li>
+                    <li>Configure SSL certificates</li>
+                </ul>
+
+                <h3>Deployment Commands</h3>
+                <pre><code># Publish for production
+dotnet publish -c Release -o ./publish
+
+# Run migrations on production database
+dotnet ef database update --connection "ProductionConnectionString"</code></pre>
+            </section>
+
+            <!-- Footer -->
+            <footer class="footer">
+                <h3>📚 Additional Resources</h3>
+                <p>
+                    <strong>Documentation Files:</strong><br>
+                    • README.md - Comprehensive documentation<br>
+                    • QUICKSTART.md - Quick start guide<br>
+                    • START_HERE.txt - Quick reference
+                </p>
+                <hr style="margin: 20px 0; opacity: 0.3;">
+                <p>
+                    <strong>Q&A Web Application</strong> | Version 1.0.0<br>
+                    Built with ASP.NET Core 8.0 | Entity Framework Core | JWT Authentication<br>
+                    © 2024 - Production Ready
+                </p>
+            </footer>
+        </main>
+    </div>
+
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Highlight current section in navigation
+        window.addEventListener('scroll', () => {
+            let current = '';
+            document.querySelectorAll('section').forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            document.querySelectorAll('.nav-menu a').forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${current}`) {
+                    link.style.background = 'rgba(255,255,255,0.2)';
+                } else {
+                    link.style.background = '';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+@page
+@model LoginModel
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Login</h4>
+            </div>
+            <div class="card-body">
+                <div id="errorMessage" class="alert alert-danger d-none"></div>
+
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label for="usernameOrEmail" class="form-label">Username or Email</label>
+                        <input type="text" class="form-control" id="usernameOrEmail" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Login</button>
+                </form>
+
+                <div class="text-center mt-3">
+                    Don't have an account? <a href="/Register">Register here</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const usernameOrEmail = document.getElementById('usernameOrEmail').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usernameOrEmail,
+                        password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('jwtToken', data.token);
+                    localStorage.setItem('username', data.user.username);
+                    localStorage.setItem('userId', data.user.id);
+                    window.location.href = '/';
+                } else {
+                    document.getElementById('errorMessage').textContent = data.message || 'Login failed';
+                    document.getElementById('errorMessage').classList.remove('d-none');
+                }
+            } catch (error) {
+                document.getElementById('errorMessage').textContent = 'An error occurred. Please try again.';
+                document.getElementById('errorMessage').classList.remove('d-none');
+            }
+        });
+
+        // Redirect if already logged in
+        if (getToken()) {
+            window.location.href = '/';
+        }
+    </script>
+}

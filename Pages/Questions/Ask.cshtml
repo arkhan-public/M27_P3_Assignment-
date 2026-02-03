@@ -1,0 +1,84 @@
+@page
+@model AskModel
+@{
+    ViewData["Title"] = "Ask a Question";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Ask a Question</h4>
+            </div>
+            <div class="card-body">
+                <div id="errorMessage" class="alert alert-danger d-none"></div>
+                <div id="successMessage" class="alert alert-success d-none"></div>
+
+                <form id="askQuestionForm">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="title" required minlength="10" maxlength="200">
+                        <div class="form-text">Be specific and imagine you're asking a question to another person</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="body" class="form-label">Body</label>
+                        <textarea class="form-control" id="body" rows="10" required minlength="20" maxlength="5000"></textarea>
+                        <div class="form-text">Include all the information someone would need to answer your question</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="tags" class="form-label">Tags</label>
+                        <input type="text" class="form-control" id="tags" required>
+                        <div class="form-text">Comma-separated tags (e.g., csharp, aspnet, sql)</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Post Question</button>
+                    <a href="/Questions" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Redirect if not logged in
+        if (!getToken()) {
+            window.location.href = '/Login';
+        }
+
+        document.getElementById('askQuestionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const title = document.getElementById('title').value;
+            const body = document.getElementById('body').value;
+            const tags = document.getElementById('tags').value;
+
+            try {
+                const response = await fetch('/api/questions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + getToken()
+                    },
+                    body: JSON.stringify({ title, body, tags })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    window.location.href = '/Questions/Details?id=' + data.questionId;
+                } else if (response.status === 401) {
+                    window.location.href = '/Login';
+                } else {
+                    const data = await response.json();
+                    document.getElementById('errorMessage').textContent = data.message || 'Failed to post question';
+                    document.getElementById('errorMessage').classList.remove('d-none');
+                }
+            } catch (error) {
+                document.getElementById('errorMessage').textContent = 'An error occurred. Please try again.';
+                document.getElementById('errorMessage').classList.remove('d-none');
+            }
+        });
+    </script>
+}

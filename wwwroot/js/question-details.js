@@ -189,14 +189,30 @@
             return;
         }
 
-        const body = document.getElementById('answerBody').value;
+        const bodyElement = document.getElementById('answerBody');
+        const errorElement = document.getElementById('answerError');
+        const body = bodyElement.value.trim();
         const questionId = pageData.questionId || 0;
 
-        if (body.length < 20) {
-            document.getElementById('answerError').textContent = 'Answer must be at least 20 characters';
-            document.getElementById('answerError').classList.remove('d-none');
+        // Clear previous errors
+        errorElement.classList.add('d-none');
+        errorElement.textContent = '';
+
+        // Validation
+        if (!body || body.length < 20) {
+            errorElement.textContent = 'Answer must be at least 20 characters';
+            errorElement.classList.remove('d-none');
             return;
         }
+
+        if (!questionId || questionId === 0) {
+            errorElement.textContent = 'Invalid question ID';
+            errorElement.classList.remove('d-none');
+            console.error('Question ID is missing or invalid:', questionId);
+            return;
+        }
+
+        console.log('Submitting answer:', { body: body.substring(0, 50) + '...', questionId });
 
         try {
             const response = await fetch('/api/answers', {
@@ -205,21 +221,30 @@
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + getToken()
                 },
-                body: JSON.stringify({ body, questionId })
+                body: JSON.stringify({ 
+                    body: body, 
+                    questionId: questionId 
+                })
             });
 
+            console.log('Response status:', response.status);
+
             if (response.ok) {
+                console.log('Answer posted successfully, reloading page...');
                 location.reload();
             } else if (response.status === 401) {
+                console.error('Unauthorized - redirecting to login');
                 window.location.href = '/Login';
             } else {
-                const data = await response.json();
-                document.getElementById('answerError').textContent = data.message || 'Failed to post answer';
-                document.getElementById('answerError').classList.remove('d-none');
+                const data = await response.json().catch(() => ({ message: 'Failed to post answer' }));
+                console.error('Error response:', data);
+                errorElement.textContent = data.message || 'Failed to post answer';
+                errorElement.classList.remove('d-none');
             }
         } catch (error) {
-            document.getElementById('answerError').textContent = 'An error occurred. Please try again.';
-            document.getElementById('answerError').classList.remove('d-none');
+            console.error('Exception posting answer:', error);
+            errorElement.textContent = 'An error occurred. Please try again.';
+            errorElement.classList.remove('d-none');
         }
     };
 
@@ -311,18 +336,55 @@
         }
     };
 
-    window.editComment = async function (commentId) {
+    // Show edit form for comment
+    window.showEditCommentForm = function (commentId) {
         if (!getToken()) {
             window.location.href = '/Login';
             return;
         }
 
-        const container = document.querySelector('[data-comment-id="' + commentId + '"]');
-        if (!container) return;
-        const currentText = container.querySelector('small')?.innerText || '';
-        const newBody = prompt('Edit your comment', currentText);
-        if (newBody === null) return;
-        if (newBody.trim().length < 5) {
+        // Hide the comment display and show the edit form
+        const displayDiv = document.querySelector('.comment-display-' + commentId);
+        const editForm = document.querySelector('.comment-edit-form-' + commentId);
+        
+        if (displayDiv) displayDiv.style.display = 'none';
+        if (editForm) editForm.style.display = 'block';
+    };
+
+    // Cancel editing comment
+    window.cancelEditComment = function (commentId) {
+        // Show the comment display and hide the edit form
+        const displayDiv = document.querySelector('.comment-display-' + commentId);
+        const editForm = document.querySelector('.comment-edit-form-' + commentId);
+        
+        if (displayDiv) displayDiv.style.display = 'flex';
+        if (editForm) editForm.style.display = 'none';
+        
+        // Reset the input value to original
+        const input = document.getElementById('edit-comment-text-' + commentId);
+        const originalText = document.querySelector('.comment-body-' + commentId)?.innerText || '';
+        if (input) {
+            // Extract just the comment body (before the username)
+            const bodyMatch = originalText.match(/^(.+?) - /);
+            if (bodyMatch) {
+                input.value = bodyMatch[1];
+            }
+        }
+    };
+
+    // Update comment with new text
+    window.updateComment = async function (commentId) {
+        if (!getToken()) {
+            window.location.href = '/Login';
+            return;
+        }
+
+        const input = document.getElementById('edit-comment-text-' + commentId);
+        if (!input) return;
+
+        const newBody = input.value.trim();
+        
+        if (newBody.length < 5) {
             alert('Comment must be at least 5 characters');
             return;
         }
@@ -353,6 +415,8 @@
 
     // Initialize on DOM ready
     document.addEventListener('DOMContentLoaded', function () {
+        console.log('Initializing question details page...');
+        console.log('Page data:', pageData);
         initializeOwnershipControls();
         attachAnswerDeleteHandlers();
         attachQuestionDeleteHandler();

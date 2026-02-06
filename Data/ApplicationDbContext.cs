@@ -48,7 +48,7 @@ public class ApplicationDbContext : DbContext
             entity.HasMany(q => q.Comments)
                 .WithOne(c => c.Question)
                 .HasForeignKey(c => c.QuestionId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
 
             entity.HasMany(q => q.Votes)
                 .WithOne(v => v.Question)
@@ -68,7 +68,7 @@ public class ApplicationDbContext : DbContext
             entity.HasMany(a => a.Comments)
                 .WithOne(c => c.Answer)
                 .HasForeignKey(c => c.AnswerId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
 
             entity.HasMany(a => a.Votes)
                 .WithOne(v => v.Answer)

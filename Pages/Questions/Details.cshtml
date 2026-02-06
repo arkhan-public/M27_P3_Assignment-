@@ -57,13 +57,22 @@ else
                                 <div id="question-comments">
                                     @foreach (var comment in Model.Question.Comments)
                                     {
-                                        <div class="border-bottom py-2 d-flex justify-content-between align-items-start" data-comment-id="@comment.Id">
-                                            <div>
-                                                <small>@comment.Body - <strong>@comment.User.Username</strong> (@comment.CreatedAt.ToString("MMM dd"))</small>
+                                        <div class="border-bottom py-2" data-comment-id="@comment.Id">
+                                            <div class="d-flex justify-content-between align-items-start comment-display-@comment.Id">
+                                                <div>
+                                                    <small class="comment-body-@comment.Id">@comment.Body - <strong>@comment.User.Username</strong> (@comment.CreatedAt.ToString("MMM dd"))</small>
+                                                </div>
+                                                <div>
+                                                    <button class="btn btn-link btn-sm p-0 me-2" id="editComment-@comment.Id" data-owner="@comment.UserId" style="display:none;" onclick="showEditCommentForm(@comment.Id)">Edit</button>
+                                                    <button class="btn btn-link btn-sm text-danger p-0" id="deleteComment-@comment.Id" data-owner="@comment.UserId" style="display:none;" onclick="deleteComment(@comment.Id)">Delete</button>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <button class="btn btn-link btn-sm p-0 me-2" id="editComment-@comment.Id" data-owner="@comment.UserId" style="display:none;" onclick="editComment(@comment.Id)">Edit</button>
-                                                <button class="btn btn-link btn-sm text-danger p-0" id="deleteComment-@comment.Id" data-owner="@comment.UserId" style="display:none;" onclick="deleteComment(@comment.Id)">Delete</button>
+                                            <div class="mt-2 comment-edit-form-@comment.Id" style="display:none;">
+                                                <input type="text" class="form-control form-control-sm" id="edit-comment-text-@comment.Id" value="@comment.Body" maxlength="500">
+                                                <div class="mt-1">
+                                                    <button class="btn btn-sm btn-primary" onclick="updateComment(@comment.Id)">Save</button>
+                                                    <button class="btn btn-sm btn-secondary" onclick="cancelEditComment(@comment.Id)">Cancel</button>
+                                                </div>
                                             </div>
                                         </div>
                                     }
@@ -132,13 +141,22 @@ else
                                     <div id="answer-@answer.Id-comments">
                                         @foreach (var comment in answer.Comments)
                                         {
-                                            <div class="border-bottom py-2 d-flex justify-content-between align-items-start" data-comment-id="@comment.Id">
-                                                <div>
-                                                    <small>@comment.Body - <strong>@comment.User.Username</strong> (@comment.CreatedAt.ToString("MMM dd"))</small>
+                                            <div class="border-bottom py-2" data-comment-id="@comment.Id">
+                                                <div class="d-flex justify-content-between align-items-start comment-display-@comment.Id">
+                                                    <div>
+                                                        <small class="comment-body-@comment.Id">@comment.Body - <strong>@comment.User.Username</strong> (@comment.CreatedAt.ToString("MMM dd"))</small>
+                                                    </div>
+                                                    <div>
+                                                        <button class="btn btn-link btn-sm p-0 me-2" id="editComment-@comment.Id" data-owner="@comment.UserId" style="display:none;" onclick="showEditCommentForm(@comment.Id)">Edit</button>
+                                                        <button class="btn btn-link btn-sm text-danger p-0" id="deleteComment-@comment.Id" data-owner="@comment.UserId" style="display:none;" onclick="deleteComment(@comment.Id)">Delete</button>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <button class="btn btn-link btn-sm p-0 me-2" id="editComment-@comment.Id" data-owner="@comment.UserId" style="display:none;" onclick="editComment(@comment.Id)">Edit</button>
-                                                    <button class="btn btn-link btn-sm text-danger p-0" id="deleteComment-@comment.Id" data-owner="@comment.UserId" style="display:none;" onclick="deleteComment(@comment.Id)">Delete</button>
+                                                <div class="mt-2 comment-edit-form-@comment.Id" style="display:none;">
+                                                    <input type="text" class="form-control form-control-sm" id="edit-comment-text-@comment.Id" value="@comment.Body" maxlength="500">
+                                                    <div class="mt-1">
+                                                        <button class="btn btn-sm btn-primary" onclick="updateComment(@comment.Id)">Save</button>
+                                                        <button class="btn btn-sm btn-secondary" onclick="cancelEditComment(@comment.Id)">Cancel</button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         }

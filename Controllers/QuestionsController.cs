@@ -42,7 +42,7 @@ public class QuestionsController : ControllerBase
             return BadRequest(new { message = result.Message });
         }
 
-        return Ok(new { message = result.Message, questionId = result.Question!.Id });
+        return Ok(new { message = result.Message, id = result.Question!.Id });
     }
 
     [HttpPut("{id}")]

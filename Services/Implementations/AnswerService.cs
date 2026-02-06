@@ -84,12 +84,18 @@ public class AnswerService : IAnswerService
 
     public async Task<(bool Success, string Message)> DeleteAnswerAsync(int answerId, int userId)
     {
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        
         try
         {
-            var answer = await _context.Answers.FindAsync(answerId);
+            var answer = await _context.Answers
+                .Include(a => a.Comments)
+                .Include(a => a.Votes)
+                .FirstOrDefaultAsync(a => a.Id == answerId);
 
             if (answer == null)
             {
+                await transaction.RollbackAsync();
                 return (false, "Answer not found");
             }
 
@@ -97,17 +103,39 @@ public class AnswerService : IAnswerService
             {
                 _logger.LogWarning("User {UserId} attempted to delete answer {AnswerId} owned by user {OwnerId}",
                     userId, answerId, answer.UserId);
+                await transaction.RollbackAsync();
                 return (false, "You do not have permission to delete this answer");
             }
 
-            _context.Answers.Remove(answer);
-            await _context.SaveChangesAsync();
+            // Step 1: Delete all comments on the answer
+            if (answer.Comments.Any())
+            {
+                _context.Comments.RemoveRange(answer.Comments);
+                _logger.LogInformation("Deleting {Count} comments from answer {AnswerId}", 
+                    answer.Comments.Count, answerId);
+            }
 
-            _logger.LogInformation("Answer {AnswerId} deleted by user {UserId}", answerId, userId);
-            return (true, "Answer deleted successfully");
+            // Step 2: Delete all votes on the answer
+            if (answer.Votes.Any())
+            {
+                _context.Votes.RemoveRange(answer.Votes);
+                _logger.LogInformation("Deleting {Count} votes from answer {AnswerId}", 
+                    answer.Votes.Count, answerId);
+            }
+
+            // Step 3: Finally, delete the answer
+            _context.Answers.Remove(answer);
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            _logger.LogInformation("Answer {AnswerId} and all related data deleted successfully by user {UserId}", 
+                answerId, userId);
+            return (true, "Answer and all related content deleted successfully");
         }
         catch (Exception ex)
         {
+            await transaction.RollbackAsync();
             _logger.LogError(ex, "Error deleting answer {AnswerId}", answerId);
             return (false, "An error occurred while deleting the answer");
         }

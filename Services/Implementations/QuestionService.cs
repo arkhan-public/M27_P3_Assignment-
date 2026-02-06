@@ -90,12 +90,22 @@ public class QuestionService : IQuestionService
 
     public async Task<(bool Success, string Message)> DeleteQuestionAsync(int questionId, int userId)
     {
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        
         try
         {
-            var question = await _context.Questions.FindAsync(questionId);
+            var question = await _context.Questions
+                .Include(q => q.Answers)
+                    .ThenInclude(a => a.Comments)
+                .Include(q => q.Comments)
+                .Include(q => q.Votes)
+                .Include(q => q.Answers)
+                    .ThenInclude(a => a.Votes)
+                .FirstOrDefaultAsync(q => q.Id == questionId);
 
             if (question == null)
             {
+                await transaction.RollbackAsync();
                 return (false, "Question not found");
             }
 
@@ -103,17 +113,65 @@ public class QuestionService : IQuestionService
             {
                 _logger.LogWarning("User {UserId} attempted to delete question {QuestionId} owned by user {OwnerId}",
                     userId, questionId, question.UserId);
+                await transaction.RollbackAsync();
                 return (false, "You do not have permission to delete this question");
             }
 
-            _context.Questions.Remove(question);
-            await _context.SaveChangesAsync();
+            // Step 1: Delete all comments on answers
+            var answerComments = question.Answers.SelectMany(a => a.Comments).ToList();
+            if (answerComments.Any())
+            {
+                _context.Comments.RemoveRange(answerComments);
+                _logger.LogInformation("Deleting {Count} comments from answers of question {QuestionId}", 
+                    answerComments.Count, questionId);
+            }
 
-            _logger.LogInformation("Question {QuestionId} deleted by user {UserId}", questionId, userId);
-            return (true, "Question deleted successfully");
+            // Step 2: Delete all votes on answers
+            var answerVotes = question.Answers.SelectMany(a => a.Votes).ToList();
+            if (answerVotes.Any())
+            {
+                _context.Votes.RemoveRange(answerVotes);
+                _logger.LogInformation("Deleting {Count} votes from answers of question {QuestionId}", 
+                    answerVotes.Count, questionId);
+            }
+
+            // Step 3: Delete all answers
+            if (question.Answers.Any())
+            {
+                _context.Answers.RemoveRange(question.Answers);
+                _logger.LogInformation("Deleting {Count} answers for question {QuestionId}", 
+                    question.Answers.Count, questionId);
+            }
+
+            // Step 4: Delete all comments on the question
+            if (question.Comments.Any())
+            {
+                _context.Comments.RemoveRange(question.Comments);
+                _logger.LogInformation("Deleting {Count} comments from question {QuestionId}", 
+                    question.Comments.Count, questionId);
+            }
+
+            // Step 5: Delete all votes on the question
+            if (question.Votes.Any())
+            {
+                _context.Votes.RemoveRange(question.Votes);
+                _logger.LogInformation("Deleting {Count} votes from question {QuestionId}", 
+                    question.Votes.Count, questionId);
+            }
+
+            // Step 6: Finally, delete the question
+            _context.Questions.Remove(question);
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            _logger.LogInformation("Question {QuestionId} and all related data deleted successfully by user {UserId}", 
+                questionId, userId);
+            return (true, "Question and all related content deleted successfully");
         }
         catch (Exception ex)
         {
+            await transaction.RollbackAsync();
             _logger.LogError(ex, "Error deleting question {QuestionId}", questionId);
             return (false, "An error occurred while deleting the question");
         }

@@ -44,10 +44,11 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(a => a.QuestionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // When a question is deleted, its comments should be deleted as well
             entity.HasMany(q => q.Comments)
                 .WithOne(c => c.Question)
                 .HasForeignKey(c => c.QuestionId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasMany(q => q.Votes)
                 .WithOne(v => v.Question)
@@ -63,10 +64,11 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(a => a.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // When an answer is deleted, its comments should be deleted as well
             entity.HasMany(a => a.Comments)
                 .WithOne(c => c.Answer)
                 .HasForeignKey(c => c.AnswerId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasMany(a => a.Votes)
                 .WithOne(v => v.Answer)

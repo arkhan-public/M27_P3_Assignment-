@@ -1,40 +1,40 @@
 @page
-@model AskModel
+@model EditModel
 @{
-    ViewData["Title"] = "Ask a Question";
+    ViewData["Title"] = "Edit Question";
 }
 
 <div class="row justify-content-center">
     <div class="col-md-10">
         <div class="card">
             <div class="card-header">
-                <h4 class="mb-0">Ask a Question</h4>
+                <h4 class="mb-0">Edit Question</h4>
             </div>
             <div class="card-body">
                 <div id="errorMessage" class="alert alert-danger d-none"></div>
                 <div id="successMessage" class="alert alert-success d-none"></div>
 
-                <form id="askQuestionForm">
+                <form id="editQuestionForm">
                     <div class="mb-3">
                         <label for="title" class="form-label">Title</label>
-                        <input type="text" class="form-control" id="title" required minlength="10" maxlength="200">
+                        <input type="text" class="form-control" id="title" required minlength="10" maxlength="200" value="@Model.Question?.Title">
                         <div class="form-text">Be specific and imagine you're asking a question to another person</div>
                     </div>
 
                     <div class="mb-3">
                         <label for="body" class="form-label">Body</label>
-                        <textarea class="form-control" id="body" rows="10" required minlength="20" maxlength="5000"></textarea>
+                        <textarea class="form-control" id="body" rows="10" required minlength="20" maxlength="5000">@Model.Question?.Body</textarea>
                         <div class="form-text">Include all the information someone would need to answer your question</div>
                     </div>
 
                     <div class="mb-3">
                         <label for="tags" class="form-label">Tags</label>
-                        <input type="text" class="form-control" id="tags" required>
+                        <input type="text" class="form-control" id="tags" required value="@string.Join(", ", Model.Question?.Tags.Select(t => t.Name) ?? Enumerable.Empty<string>())">
                         <div class="form-text">Comma-separated tags (e.g., csharp, aspnet, sql)</div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary">Post Question</button>
-                    <a href="/Questions" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a href="/Questions/Details?id=@Model.Question?.Id" class="btn btn-secondary">Cancel</a>
                 </form>
             </div>
         </div>
@@ -42,5 +42,11 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/question-ask.js"></script>
+    <script>
+        window.questionEditData = {
+            ownerId: @(Model.Question?.UserId ?? 0),
+            questionId: @(Model.Question?.Id ?? 0)
+        };
+    </script>
+    <script src="~/js/question-edit.js"></script>
 }

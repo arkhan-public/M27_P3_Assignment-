@@ -81,4 +81,64 @@ public class CommentService : ICommentService
             return new List<Comment>();
         }
     }
+
+    public async Task<(bool Success, string Message)> UpdateCommentAsync(int commentId, string body, int userId)
+    {
+        try
+        {
+            var comment = await _context.Comments.FindAsync(commentId);
+            if (comment == null)
+            {
+                return (false, "Comment not found");
+            }
+
+            if (comment.UserId != userId)
+            {
+                _logger.LogWarning("User {UserId} attempted to update comment {CommentId} owned by user {OwnerId}", userId, commentId, comment.UserId);
+                return (false, "You do not have permission to update this comment");
+            }
+
+            comment.Body = body;
+            // NOTE: not setting UpdatedAt to avoid schema change
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Comment {CommentId} updated by user {UserId}", commentId, userId);
+            return (true, "Comment updated successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating comment {CommentId}", commentId);
+            return (false, "An error occurred while updating the comment");
+        }
+    }
+
+    public async Task<(bool Success, string Message)> DeleteCommentAsync(int commentId, int userId)
+    {
+        try
+        {
+            var comment = await _context.Comments.FindAsync(commentId);
+            if (comment == null)
+            {
+                return (false, "Comment not found");
+            }
+
+            if (comment.UserId != userId)
+            {
+                _logger.LogWarning("User {UserId} attempted to delete comment {CommentId} owned by user {OwnerId}", userId, commentId, comment.UserId);
+                return (false, "You do not have permission to delete this comment");
+            }
+
+            _context.Comments.Remove(comment);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Comment {CommentId} deleted by user {UserId}", commentId, userId);
+            return (true, "Comment deleted successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting comment {CommentId}", commentId);
+            return (false, "An error occurred while deleting the comment");
+        }
+    }
 }

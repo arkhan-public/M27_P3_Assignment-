@@ -44,4 +44,49 @@ public class CommentsController : ControllerBase
 
         return Ok(new { message = result.Message, commentId = result.Comment!.Id });
     }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateComment(int id, [FromBody] CommentCreateDto dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim))
+        {
+            return Unauthorized();
+        }
+
+        var userId = int.Parse(userIdClaim);
+        var result = await _commentService.UpdateCommentAsync(id, dto.Body, userId);
+
+        if (!result.Success)
+        {
+            return BadRequest(new { message = result.Message });
+        }
+
+        return Ok(new { message = result.Message });
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteComment(int id)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim))
+        {
+            return Unauthorized();
+        }
+
+        var userId = int.Parse(userIdClaim);
+        var result = await _commentService.DeleteCommentAsync(id, userId);
+
+        if (!result.Success)
+        {
+            return BadRequest(new { message = result.Message });
+        }
+
+        return Ok(new { message = result.Message });
+    }
 }

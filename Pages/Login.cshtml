@@ -56,9 +56,15 @@
                 const data = await response.json();
 
                 if (response.ok) {
+                    // store in localStorage for client use
                     localStorage.setItem('jwtToken', data.token);
                     localStorage.setItem('username', data.user.username);
                     localStorage.setItem('userId', data.user.id);
+
+                    // set cookie so server-side Razor pages can validate ownership on OnGet
+                    // cookie is not HttpOnly (must be available in JS) - consider server-side cookie auth for production
+                    document.cookie = `jwtToken=${data.token}; max-age=3600; path=/; samesite=lax`;
+
                     window.location.href = '/';
                 } else {
                     document.getElementById('errorMessage').textContent = data.message || 'Login failed';

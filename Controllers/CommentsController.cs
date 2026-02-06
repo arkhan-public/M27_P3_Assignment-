@@ -46,7 +46,7 @@ public class CommentsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateComment(int id, [FromBody] CommentCreateDto dto)
+    public async Task<IActionResult> UpdateComment(int id, [FromBody] CommentUpdateDto dto)
     {
         if (!ModelState.IsValid)
         {

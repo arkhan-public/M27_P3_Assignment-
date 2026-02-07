@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using QAWebApp.Data;
+using QAWebApp.Repositories.Implementations;
+using QAWebApp.Repositories.Interfaces;
 using QAWebApp.Services.Implementations;
 using QAWebApp.Services.Interfaces;
 using System.Text;
@@ -43,7 +45,15 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// Register services for Dependency Injection
+// Register Repositories (Data Access Layer) - Each repository manages its own SaveChanges
+builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
+builder.Services.AddScoped<IAnswerRepository, AnswerRepository>();
+builder.Services.AddScoped<ICommentRepository, CommentRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ITagRepository, TagRepository>();
+builder.Services.AddScoped<IVoteRepository, VoteRepository>();
+
+// Register Services (Business Logic Layer) - Services inject repositories directly
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IQuestionService, QuestionService>();

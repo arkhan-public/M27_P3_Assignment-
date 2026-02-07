@@ -1,19 +1,29 @@
-using Microsoft.EntityFrameworkCore;
-using QAWebApp.Data;
 using QAWebApp.DTOs;
 using QAWebApp.Models;
+using QAWebApp.Repositories.Interfaces;
 using QAWebApp.Services.Interfaces;
 
 namespace QAWebApp.Services.Implementations;
 
 public class AnswerService : IAnswerService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IAnswerRepository _answerRepository;
+    private readonly IQuestionRepository _questionRepository;
+    private readonly ICommentRepository _commentRepository;
+    private readonly IVoteRepository _voteRepository;
     private readonly ILogger<AnswerService> _logger;
 
-    public AnswerService(ApplicationDbContext context, ILogger<AnswerService> logger)
+    public AnswerService(
+        IAnswerRepository answerRepository,
+        IQuestionRepository questionRepository,
+        ICommentRepository commentRepository,
+        IVoteRepository voteRepository,
+        ILogger<AnswerService> logger)
     {
-        _context = context;
+        _answerRepository = answerRepository;
+        _questionRepository = questionRepository;
+        _commentRepository = commentRepository;
+        _voteRepository = voteRepository;
         _logger = logger;
     }
 
@@ -21,7 +31,7 @@ public class AnswerService : IAnswerService
     {
         try
         {
-            var question = await _context.Questions.FindAsync(dto.QuestionId);
+            var question = await _questionRepository.GetByIdAsync(dto.QuestionId);
             if (question == null)
             {
                 return (false, "Question not found", null);
@@ -35,8 +45,8 @@ public class AnswerService : IAnswerService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.Answers.Add(answer);
-            await _context.SaveChangesAsync();
+            await _answerRepository.AddAsync(answer);
+            await _answerRepository.SaveChangesAsync();
 
             _logger.LogInformation("Answer {AnswerId} created for question {QuestionId} by user {UserId}",
                 answer.Id, dto.QuestionId, userId);
@@ -53,7 +63,7 @@ public class AnswerService : IAnswerService
     {
         try
         {
-            var answer = await _context.Answers.FindAsync(answerId);
+            var answer = await _answerRepository.GetByIdAsync(answerId);
 
             if (answer == null)
             {
@@ -70,7 +80,8 @@ public class AnswerService : IAnswerService
             answer.Body = dto.Body;
             answer.UpdatedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
+            _answerRepository.Update(answer);
+            await _answerRepository.SaveChangesAsync();
 
             _logger.LogInformation("Answer {AnswerId} updated by user {UserId}", answerId, userId);
             return (true, "Answer updated successfully");
@@ -84,18 +95,12 @@ public class AnswerService : IAnswerService
 
     public async Task<(bool Success, string Message)> DeleteAnswerAsync(int answerId, int userId)
     {
-        using var transaction = await _context.Database.BeginTransactionAsync();
-        
         try
         {
-            var answer = await _context.Answers
-                .Include(a => a.Comments)
-                .Include(a => a.Votes)
-                .FirstOrDefaultAsync(a => a.Id == answerId);
+            var answer = await _answerRepository.GetAnswerWithDetailsAsync(answerId);
 
             if (answer == null)
             {
-                await transaction.RollbackAsync();
                 return (false, "Answer not found");
             }
 
@@ -103,31 +108,32 @@ public class AnswerService : IAnswerService
             {
                 _logger.LogWarning("User {UserId} attempted to delete answer {AnswerId} owned by user {OwnerId}",
                     userId, answerId, answer.UserId);
-                await transaction.RollbackAsync();
                 return (false, "You do not have permission to delete this answer");
             }
 
-            // Step 1: Delete all comments on the answer
-            if (answer.Comments.Any())
+            // Delete all comments on the answer
+            var comments = await _commentRepository.GetCommentsByAnswerIdAsync(answerId);
+            if (comments.Any())
             {
-                _context.Comments.RemoveRange(answer.Comments);
+                _commentRepository.RemoveRange(comments);
+                await _commentRepository.SaveChangesAsync();
                 _logger.LogInformation("Deleting {Count} comments from answer {AnswerId}", 
-                    answer.Comments.Count, answerId);
+                    comments.Count, answerId);
             }
 
-            // Step 2: Delete all votes on the answer
-            if (answer.Votes.Any())
+            // Delete all votes on the answer
+            var votes = await _voteRepository.GetVotesByAnswerIdAsync(answerId);
+            if (votes.Any())
             {
-                _context.Votes.RemoveRange(answer.Votes);
+                _voteRepository.RemoveRange(votes);
+                await _voteRepository.SaveChangesAsync();
                 _logger.LogInformation("Deleting {Count} votes from answer {AnswerId}", 
-                    answer.Votes.Count, answerId);
+                    votes.Count, answerId);
             }
 
-            // Step 3: Finally, delete the answer
-            _context.Answers.Remove(answer);
-
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+            // Finally, delete the answer
+            _answerRepository.Remove(answer);
+            await _answerRepository.SaveChangesAsync();
 
             _logger.LogInformation("Answer {AnswerId} and all related data deleted successfully by user {UserId}", 
                 answerId, userId);
@@ -135,7 +141,6 @@ public class AnswerService : IAnswerService
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
             _logger.LogError(ex, "Error deleting answer {AnswerId}", answerId);
             return (false, "An error occurred while deleting the answer");
         }
@@ -145,9 +150,7 @@ public class AnswerService : IAnswerService
     {
         try
         {
-            var answer = await _context.Answers
-                .Include(a => a.Question)
-                .FirstOrDefaultAsync(a => a.Id == answerId);
+            var answer = await _answerRepository.GetAnswerWithDetailsAsync(answerId);
 
             if (answer == null)
             {
@@ -162,17 +165,16 @@ public class AnswerService : IAnswerService
             }
 
             // Unaccept any previously accepted answer
-            var previouslyAccepted = await _context.Answers
-                .Where(a => a.QuestionId == answer.QuestionId && a.IsAccepted)
-                .ToListAsync();
-
-            foreach (var prev in previouslyAccepted)
+            var previouslyAccepted = await _answerRepository.GetAcceptedAnswerByQuestionIdAsync(answer.QuestionId);
+            if (previouslyAccepted != null && previouslyAccepted.Id != answerId)
             {
-                prev.IsAccepted = false;
+                previouslyAccepted.IsAccepted = false;
+                _answerRepository.Update(previouslyAccepted);
             }
 
             answer.IsAccepted = true;
-            await _context.SaveChangesAsync();
+            _answerRepository.Update(answer);
+            await _answerRepository.SaveChangesAsync();
 
             _logger.LogInformation("Answer {AnswerId} accepted for question {QuestionId}", answerId, answer.QuestionId);
             return (true, "Answer accepted successfully");
@@ -188,10 +190,7 @@ public class AnswerService : IAnswerService
     {
         try
         {
-            return await _context.Answers
-                .Include(a => a.User)
-                .Include(a => a.Question)
-                .FirstOrDefaultAsync(a => a.Id == answerId);
+            return await _answerRepository.GetAnswerWithDetailsAsync(answerId);
         }
         catch (Exception ex)
         {
@@ -204,12 +203,7 @@ public class AnswerService : IAnswerService
     {
         try
         {
-            return await _context.Answers
-                .Include(a => a.User)
-                .Where(a => a.QuestionId == questionId)
-                .OrderByDescending(a => a.IsAccepted)
-                .ThenByDescending(a => a.VoteCount)
-                .ToListAsync();
+            return await _answerRepository.GetAnswersByQuestionIdAsync(questionId);
         }
         catch (Exception ex)
         {

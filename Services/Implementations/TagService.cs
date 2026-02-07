@@ -1,18 +1,17 @@
-using Microsoft.EntityFrameworkCore;
-using QAWebApp.Data;
 using QAWebApp.Models;
+using QAWebApp.Repositories.Interfaces;
 using QAWebApp.Services.Interfaces;
 
 namespace QAWebApp.Services.Implementations;
 
 public class TagService : ITagService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ITagRepository _tagRepository;
     private readonly ILogger<TagService> _logger;
 
-    public TagService(ApplicationDbContext context, ILogger<TagService> logger)
+    public TagService(ITagRepository tagRepository, ILogger<TagService> logger)
     {
-        _context = context;
+        _tagRepository = tagRepository;
         _logger = logger;
     }
 
@@ -30,8 +29,7 @@ public class TagService : ITagService
 
             foreach (var tagName in tagNames)
             {
-                var existingTag = await _context.Tags
-                    .FirstOrDefaultAsync(t => t.Name == tagName);
+                var existingTag = await _tagRepository.GetByNameAsync(tagName);
 
                 if (existingTag != null)
                 {
@@ -44,8 +42,8 @@ public class TagService : ITagService
                         Name = tagName,
                         CreatedAt = DateTime.UtcNow
                     };
-                    _context.Tags.Add(newTag);
-                    await _context.SaveChangesAsync();
+                    await _tagRepository.AddAsync(newTag);
+                    await _tagRepository.SaveChangesAsync();
                     tags.Add(newTag);
                     _logger.LogInformation("New tag created: {TagName}", tagName);
                 }
@@ -64,9 +62,8 @@ public class TagService : ITagService
     {
         try
         {
-            return await _context.Tags
-                .OrderBy(t => t.Name)
-                .ToListAsync();
+            var tags = await _tagRepository.GetAllAsync();
+            return tags.OrderBy(t => t.Name).ToList();
         }
         catch (Exception ex)
         {
@@ -79,11 +76,7 @@ public class TagService : ITagService
     {
         try
         {
-            return await _context.Tags
-                .Include(t => t.Questions)
-                .OrderByDescending(t => t.Questions.Count)
-                .Take(count)
-                .ToListAsync();
+            return await _tagRepository.GetPopularTagsAsync(count);
         }
         catch (Exception ex)
         {

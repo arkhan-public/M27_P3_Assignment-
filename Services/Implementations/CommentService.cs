@@ -1,19 +1,18 @@
-using Microsoft.EntityFrameworkCore;
-using QAWebApp.Data;
 using QAWebApp.DTOs;
 using QAWebApp.Models;
+using QAWebApp.Repositories.Interfaces;
 using QAWebApp.Services.Interfaces;
 
 namespace QAWebApp.Services.Implementations;
 
 public class CommentService : ICommentService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ICommentRepository _commentRepository;
     private readonly ILogger<CommentService> _logger;
 
-    public CommentService(ApplicationDbContext context, ILogger<CommentService> logger)
+    public CommentService(ICommentRepository commentRepository, ILogger<CommentService> logger)
     {
-        _context = context;
+        _commentRepository = commentRepository;
         _logger = logger;
     }
 
@@ -35,8 +34,8 @@ public class CommentService : ICommentService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.Comments.Add(comment);
-            await _context.SaveChangesAsync();
+            await _commentRepository.AddAsync(comment);
+            await _commentRepository.SaveChangesAsync();
 
             _logger.LogInformation("Comment {CommentId} created by user {UserId}", comment.Id, userId);
             return (true, "Comment posted successfully", comment);
@@ -52,11 +51,7 @@ public class CommentService : ICommentService
     {
         try
         {
-            return await _context.Comments
-                .Include(c => c.User)
-                .Where(c => c.QuestionId == questionId)
-                .OrderBy(c => c.CreatedAt)
-                .ToListAsync();
+            return await _commentRepository.GetCommentsByQuestionIdAsync(questionId);
         }
         catch (Exception ex)
         {
@@ -69,11 +64,7 @@ public class CommentService : ICommentService
     {
         try
         {
-            return await _context.Comments
-                .Include(c => c.User)
-                .Where(c => c.AnswerId == answerId)
-                .OrderBy(c => c.CreatedAt)
-                .ToListAsync();
+            return await _commentRepository.GetCommentsByAnswerIdAsync(answerId);
         }
         catch (Exception ex)
         {
@@ -86,7 +77,7 @@ public class CommentService : ICommentService
     {
         try
         {
-            var comment = await _context.Comments.FindAsync(commentId);
+            var comment = await _commentRepository.GetByIdAsync(commentId);
             if (comment == null)
             {
                 return (false, "Comment not found");
@@ -94,14 +85,15 @@ public class CommentService : ICommentService
 
             if (comment.UserId != userId)
             {
-                _logger.LogWarning("User {UserId} attempted to update comment {CommentId} owned by user {OwnerId}", userId, commentId, comment.UserId);
+                _logger.LogWarning("User {UserId} attempted to update comment {CommentId} owned by user {OwnerId}", 
+                    userId, commentId, comment.UserId);
                 return (false, "You do not have permission to update this comment");
             }
 
             comment.Body = body;
-            // NOTE: not setting UpdatedAt to avoid schema change
 
-            await _context.SaveChangesAsync();
+            _commentRepository.Update(comment);
+            await _commentRepository.SaveChangesAsync();
 
             _logger.LogInformation("Comment {CommentId} updated by user {UserId}", commentId, userId);
             return (true, "Comment updated successfully");
@@ -117,7 +109,7 @@ public class CommentService : ICommentService
     {
         try
         {
-            var comment = await _context.Comments.FindAsync(commentId);
+            var comment = await _commentRepository.GetByIdAsync(commentId);
             if (comment == null)
             {
                 return (false, "Comment not found");
@@ -125,12 +117,13 @@ public class CommentService : ICommentService
 
             if (comment.UserId != userId)
             {
-                _logger.LogWarning("User {UserId} attempted to delete comment {CommentId} owned by user {OwnerId}", userId, commentId, comment.UserId);
+                _logger.LogWarning("User {UserId} attempted to delete comment {CommentId} owned by user {OwnerId}", 
+                    userId, commentId, comment.UserId);
                 return (false, "You do not have permission to delete this comment");
             }
 
-            _context.Comments.Remove(comment);
-            await _context.SaveChangesAsync();
+            _commentRepository.Remove(comment);
+            await _commentRepository.SaveChangesAsync();
 
             _logger.LogInformation("Comment {CommentId} deleted by user {UserId}", commentId, userId);
             return (true, "Comment deleted successfully");

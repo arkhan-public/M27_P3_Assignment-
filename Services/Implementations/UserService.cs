@@ -1,7 +1,6 @@
-using Microsoft.EntityFrameworkCore;
-using QAWebApp.Data;
 using QAWebApp.DTOs;
 using QAWebApp.Models;
+using QAWebApp.Repositories.Interfaces;
 using QAWebApp.Services.Interfaces;
 using BCrypt.Net;
 
@@ -9,12 +8,12 @@ namespace QAWebApp.Services.Implementations;
 
 public class UserService : IUserService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IUserRepository _userRepository;
     private readonly ILogger<UserService> _logger;
 
-    public UserService(ApplicationDbContext context, ILogger<UserService> logger)
+    public UserService(IUserRepository userRepository, ILogger<UserService> logger)
     {
-        _context = context;
+        _userRepository = userRepository;
         _logger = logger;
     }
 
@@ -23,13 +22,19 @@ public class UserService : IUserService
         try
         {
             // Check if username already exists
-            var existingUser = await _context.Users
-                .FirstOrDefaultAsync(u => u.Username == dto.Username || u.Email == dto.Email);
-
-            if (existingUser != null)
+            var usernameExists = await _userRepository.UsernameExistsAsync(dto.Username);
+            if (usernameExists)
             {
-                _logger.LogWarning("Registration failed: Username or email already exists");
-                return (false, "Username or email already exists", null);
+                _logger.LogWarning("Registration failed: Username already exists");
+                return (false, "Username already exists", null);
+            }
+
+            // Check if email already exists
+            var emailExists = await _userRepository.EmailExistsAsync(dto.Email);
+            if (emailExists)
+            {
+                _logger.LogWarning("Registration failed: Email already exists");
+                return (false, "Email already exists", null);
             }
 
             // Hash password
@@ -43,8 +48,8 @@ public class UserService : IUserService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+            await _userRepository.AddAsync(user);
+            await _userRepository.SaveChangesAsync();
 
             _logger.LogInformation("User {Username} registered successfully", user.Username);
             return (true, "Registration successful", user);
@@ -60,8 +65,14 @@ public class UserService : IUserService
     {
         try
         {
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Username == dto.UsernameOrEmail || u.Email == dto.UsernameOrEmail);
+            // Try to find user by username first
+            var user = await _userRepository.GetByUsernameAsync(dto.UsernameOrEmail);
+            
+            // If not found by username, try by email
+            if (user == null)
+            {
+                user = await _userRepository.GetByEmailAsync(dto.UsernameOrEmail);
+            }
 
             if (user == null)
             {
@@ -89,7 +100,7 @@ public class UserService : IUserService
     {
         try
         {
-            return await _context.Users.FindAsync(userId);
+            return await _userRepository.GetByIdAsync(userId);
         }
         catch (Exception ex)
         {
@@ -102,7 +113,7 @@ public class UserService : IUserService
     {
         try
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+            return await _userRepository.GetByUsernameAsync(username);
         }
         catch (Exception ex)
         {

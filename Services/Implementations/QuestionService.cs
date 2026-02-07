@@ -1,21 +1,32 @@
-using Microsoft.EntityFrameworkCore;
-using QAWebApp.Data;
 using QAWebApp.DTOs;
 using QAWebApp.Models;
+using QAWebApp.Repositories.Interfaces;
 using QAWebApp.Services.Interfaces;
 
 namespace QAWebApp.Services.Implementations;
 
 public class QuestionService : IQuestionService
 {
-    private readonly ApplicationDbContext _context;
-    private readonly ITagService _tagService;
+    private readonly IQuestionRepository _questionRepository;
+    private readonly ITagRepository _tagRepository;
+    private readonly IAnswerRepository _answerRepository;
+    private readonly ICommentRepository _commentRepository;
+    private readonly IVoteRepository _voteRepository;
     private readonly ILogger<QuestionService> _logger;
 
-    public QuestionService(ApplicationDbContext context, ITagService tagService, ILogger<QuestionService> logger)
+    public QuestionService(
+        IQuestionRepository questionRepository,
+        ITagRepository tagRepository,
+        IAnswerRepository answerRepository,
+        ICommentRepository commentRepository,
+        IVoteRepository voteRepository,
+        ILogger<QuestionService> logger)
     {
-        _context = context;
-        _tagService = tagService;
+        _questionRepository = questionRepository;
+        _tagRepository = tagRepository;
+        _answerRepository = answerRepository;
+        _commentRepository = commentRepository;
+        _voteRepository = voteRepository;
         _logger = logger;
     }
 
@@ -23,27 +34,48 @@ public class QuestionService : IQuestionService
     {
         try
         {
-            var tags = await _tagService.GetOrCreateTagsAsync(dto.Tags);
+            // Get or create tags
+            var tagNames = dto.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                   .Select(t => t.Trim().ToLower())
+                                   .Distinct()
+                                   .ToList();
 
+            var existingTags = await _tagRepository.GetTagsByNamesAsync(tagNames);
+            var tags = new List<Tag>();
+
+            foreach (var tagName in tagNames)
+            {
+                var tag = existingTags.FirstOrDefault(t => t.Name.ToLower() == tagName);
+                if (tag == null)
+                {
+                    tag = new Tag { Name = tagName, CreatedAt = DateTime.UtcNow };
+                    await _tagRepository.AddAsync(tag);
+                    await _tagRepository.SaveChangesAsync();
+                    _logger.LogInformation("New tag created: {TagName}", tagName);
+                }
+                tags.Add(tag);
+            }
+
+            // Create question
             var question = new Question
             {
                 Title = dto.Title,
                 Body = dto.Body,
                 UserId = userId,
-                CreatedAt = DateTime.UtcNow,
-                Tags = tags
+                Tags = tags,
+                CreatedAt = DateTime.UtcNow
             };
 
-            _context.Questions.Add(question);
-            await _context.SaveChangesAsync();
+            await _questionRepository.AddAsync(question);
+            await _questionRepository.SaveChangesAsync();
 
             _logger.LogInformation("Question {QuestionId} created by user {UserId}", question.Id, userId);
             return (true, "Question created successfully", question);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating question for user {UserId}", userId);
-            return (false, "An error occurred while creating the question", null);
+            _logger.LogError(ex, "Error creating question");
+            return (false, $"Error creating question: {ex.Message}", null);
         }
     }
 
@@ -51,119 +83,142 @@ public class QuestionService : IQuestionService
     {
         try
         {
-            var question = await _context.Questions
-                .Include(q => q.Tags)
-                .FirstOrDefaultAsync(q => q.Id == questionId);
-
+            // Get the question with its tags included
+            var question = await _questionRepository.GetQuestionWithDetailsAsync(questionId);
+            
             if (question == null)
-            {
                 return (false, "Question not found");
-            }
 
             if (question.UserId != userId)
             {
                 _logger.LogWarning("User {UserId} attempted to update question {QuestionId} owned by user {OwnerId}",
                     userId, questionId, question.UserId);
-                return (false, "You do not have permission to update this question");
+                return (false, "Unauthorized to update this question");
             }
 
+            // Update basic fields
             question.Title = dto.Title;
             question.Body = dto.Body;
             question.UpdatedAt = DateTime.UtcNow;
 
-            // Update tags
+            // Process tags
+            var tagNames = dto.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                   .Select(t => t.Trim().ToLower())
+                                   .Distinct()
+                                   .ToList();
+
+            // Get or create tags
+            var existingTags = await _tagRepository.GetTagsByNamesAsync(tagNames);
+            var updatedTags = new List<Tag>();
+
+            foreach (var tagName in tagNames)
+            {
+                var tag = existingTags.FirstOrDefault(t => t.Name.ToLower() == tagName);
+                if (tag == null)
+                {
+                    // Create new tag if it doesn't exist
+                    tag = new Tag { Name = tagName, CreatedAt = DateTime.UtcNow };
+                    await _tagRepository.AddAsync(tag);
+                    await _tagRepository.SaveChangesAsync();
+                    _logger.LogInformation("New tag created during question update: {TagName}", tagName);
+                }
+                updatedTags.Add(tag);
+            }
+
+            // Clear existing tags and add new ones
             question.Tags.Clear();
-            var tags = await _tagService.GetOrCreateTagsAsync(dto.Tags);
-            question.Tags = tags;
+            foreach (var tag in updatedTags)
+            {
+                question.Tags.Add(tag);
+            }
 
-            await _context.SaveChangesAsync();
+            _questionRepository.Update(question);
+            await _questionRepository.SaveChangesAsync();
 
-            _logger.LogInformation("Question {QuestionId} updated by user {UserId}", questionId, userId);
+            _logger.LogInformation("Question {QuestionId} updated by user {UserId} with {TagCount} tags", 
+                questionId, userId, updatedTags.Count);
             return (true, "Question updated successfully");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating question {QuestionId}", questionId);
-            return (false, "An error occurred while updating the question");
+            return (false, $"Error updating question: {ex.Message}");
         }
     }
 
     public async Task<(bool Success, string Message)> DeleteQuestionAsync(int questionId, int userId)
     {
-        using var transaction = await _context.Database.BeginTransactionAsync();
-        
         try
         {
-            var question = await _context.Questions
-                .Include(q => q.Answers)
-                    .ThenInclude(a => a.Comments)
-                .Include(q => q.Comments)
-                .Include(q => q.Votes)
-                .Include(q => q.Answers)
-                    .ThenInclude(a => a.Votes)
-                .FirstOrDefaultAsync(q => q.Id == questionId);
-
+            // Load question with all related data
+            var question = await _questionRepository.GetQuestionWithDetailsAsync(questionId);
+            
             if (question == null)
-            {
-                await transaction.RollbackAsync();
                 return (false, "Question not found");
-            }
 
             if (question.UserId != userId)
             {
                 _logger.LogWarning("User {UserId} attempted to delete question {QuestionId} owned by user {OwnerId}",
                     userId, questionId, question.UserId);
-                await transaction.RollbackAsync();
-                return (false, "You do not have permission to delete this question");
+                return (false, "Unauthorized to delete this question");
             }
 
-            // Step 1: Delete all comments on answers
-            var answerComments = question.Answers.SelectMany(a => a.Comments).ToList();
-            if (answerComments.Any())
+            // Step 1: Delete all votes on the question
+            var questionVotes = await _voteRepository.GetVotesByQuestionIdAsync(questionId);
+            if (questionVotes.Any())
             {
-                _context.Comments.RemoveRange(answerComments);
-                _logger.LogInformation("Deleting {Count} comments from answers of question {QuestionId}", 
-                    answerComments.Count, questionId);
+                _voteRepository.RemoveRange(questionVotes);
+                await _voteRepository.SaveChangesAsync();
+                _logger.LogInformation("Deleted {Count} votes from question {QuestionId}", 
+                    questionVotes.Count, questionId);
             }
 
-            // Step 2: Delete all votes on answers
-            var answerVotes = question.Answers.SelectMany(a => a.Votes).ToList();
-            if (answerVotes.Any())
+            // Step 2: Delete all answer-related data
+            foreach (var answer in question.Answers)
             {
-                _context.Votes.RemoveRange(answerVotes);
-                _logger.LogInformation("Deleting {Count} votes from answers of question {QuestionId}", 
-                    answerVotes.Count, questionId);
+                // Step 2a: Delete comments on this answer
+                var answerComments = await _commentRepository.GetCommentsByAnswerIdAsync(answer.Id);
+                if (answerComments.Any())
+                {
+                    _commentRepository.RemoveRange(answerComments);
+                    await _commentRepository.SaveChangesAsync();
+                    _logger.LogInformation("Deleted {Count} comments from answer {AnswerId} of question {QuestionId}", 
+                        answerComments.Count, answer.Id, questionId);
+                }
+
+                // Step 2b: Delete votes on this answer
+                var answerVotes = await _voteRepository.GetVotesByAnswerIdAsync(answer.Id);
+                if (answerVotes.Any())
+                {
+                    _voteRepository.RemoveRange(answerVotes);
+                    await _voteRepository.SaveChangesAsync();
+                    _logger.LogInformation("Deleted {Count} votes from answer {AnswerId} of question {QuestionId}", 
+                        answerVotes.Count, answer.Id, questionId);
+                }
             }
 
-            // Step 3: Delete all answers
+            // Step 3: Delete all answers (after their comments and votes are deleted)
             if (question.Answers.Any())
             {
-                _context.Answers.RemoveRange(question.Answers);
-                _logger.LogInformation("Deleting {Count} answers for question {QuestionId}", 
+                _answerRepository.RemoveRange(question.Answers.ToList());
+                await _answerRepository.SaveChangesAsync();
+                _logger.LogInformation("Deleted {Count} answers from question {QuestionId}", 
                     question.Answers.Count, questionId);
             }
 
             // Step 4: Delete all comments on the question
-            if (question.Comments.Any())
+            var questionComments = await _commentRepository.GetCommentsByQuestionIdAsync(questionId);
+            if (questionComments.Any())
             {
-                _context.Comments.RemoveRange(question.Comments);
-                _logger.LogInformation("Deleting {Count} comments from question {QuestionId}", 
-                    question.Comments.Count, questionId);
+                _commentRepository.RemoveRange(questionComments);
+                await _commentRepository.SaveChangesAsync();
+                _logger.LogInformation("Deleted {Count} comments from question {QuestionId}", 
+                    questionComments.Count, questionId);
             }
 
-            // Step 5: Delete all votes on the question
-            if (question.Votes.Any())
-            {
-                _context.Votes.RemoveRange(question.Votes);
-                _logger.LogInformation("Deleting {Count} votes from question {QuestionId}", 
-                    question.Votes.Count, questionId);
-            }
-
-            // Step 6: Finally, delete the question
-            _context.Questions.Remove(question);
-
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+            // Step 5: Finally, delete the question
+            _questionRepository.Remove(question);
+            await _questionRepository.SaveChangesAsync();
 
             _logger.LogInformation("Question {QuestionId} and all related data deleted successfully by user {UserId}", 
                 questionId, userId);
@@ -171,9 +226,8 @@ public class QuestionService : IQuestionService
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
             _logger.LogError(ex, "Error deleting question {QuestionId}", questionId);
-            return (false, "An error occurred while deleting the question");
+            return (false, $"Error deleting question: {ex.Message}");
         }
     }
 
@@ -181,17 +235,7 @@ public class QuestionService : IQuestionService
     {
         try
         {
-            return await _context.Questions
-                .Include(q => q.User)
-                .Include(q => q.Tags)
-                .Include(q => q.Answers.OrderByDescending(a => a.IsAccepted).ThenByDescending(a => a.VoteCount))
-                    .ThenInclude(a => a.User)
-                .Include(q => q.Answers)
-                    .ThenInclude(a => a.Comments)
-                        .ThenInclude(c => c.User)
-                .Include(q => q.Comments)
-                    .ThenInclude(c => c.User)
-                .FirstOrDefaultAsync(q => q.Id == questionId);
+            return await _questionRepository.GetQuestionWithDetailsAsync(questionId);
         }
         catch (Exception ex)
         {
@@ -204,27 +248,11 @@ public class QuestionService : IQuestionService
     {
         try
         {
-            var query = _context.Questions
-                .Include(q => q.User)
-                .Include(q => q.Tags)
-                .Include(q => q.Answers)
-                .AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(searchTerm))
-            {
-                query = query.Where(q => q.Title.Contains(searchTerm) || q.Body.Contains(searchTerm));
-            }
-
-            if (!string.IsNullOrWhiteSpace(tag))
-            {
-                query = query.Where(q => q.Tags.Any(t => t.Name == tag));
-            }
-
-            return await query.OrderByDescending(q => q.CreatedAt).ToListAsync();
+            return await _questionRepository.GetAllQuestionsWithDetailsAsync(searchTerm, tag);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving questions");
+            _logger.LogError(ex, "Error retrieving all questions");
             return new List<Question>();
         }
     }
@@ -233,13 +261,7 @@ public class QuestionService : IQuestionService
     {
         try
         {
-            return await _context.Questions
-                .Include(q => q.User)
-                .Include(q => q.Tags)
-                .Include(q => q.Answers)
-                .OrderByDescending(q => q.CreatedAt)
-                .Take(count)
-                .ToListAsync();
+            return await _questionRepository.GetLatestQuestionsAsync(count);
         }
         catch (Exception ex)
         {
@@ -252,12 +274,8 @@ public class QuestionService : IQuestionService
     {
         try
         {
-            var question = await _context.Questions.FindAsync(questionId);
-            if (question != null)
-            {
-                question.ViewCount++;
-                await _context.SaveChangesAsync();
-            }
+            await _questionRepository.IncrementViewCountAsync(questionId);
+            await _questionRepository.SaveChangesAsync();
         }
         catch (Exception ex)
         {

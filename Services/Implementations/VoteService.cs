@@ -1,19 +1,26 @@
-using Microsoft.EntityFrameworkCore;
-using QAWebApp.Data;
 using QAWebApp.DTOs;
 using QAWebApp.Models;
+using QAWebApp.Repositories.Interfaces;
 using QAWebApp.Services.Interfaces;
 
 namespace QAWebApp.Services.Implementations;
 
 public class VoteService : IVoteService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IVoteRepository _voteRepository;
+    private readonly IQuestionRepository _questionRepository;
+    private readonly IAnswerRepository _answerRepository;
     private readonly ILogger<VoteService> _logger;
 
-    public VoteService(ApplicationDbContext context, ILogger<VoteService> logger)
+    public VoteService(
+        IVoteRepository voteRepository,
+        IQuestionRepository questionRepository,
+        IAnswerRepository answerRepository,
+        ILogger<VoteService> logger)
     {
-        _context = context;
+        _voteRepository = voteRepository;
+        _questionRepository = questionRepository;
+        _answerRepository = answerRepository;
         _logger = logger;
     }
 
@@ -27,19 +34,16 @@ public class VoteService : IVoteService
             }
 
             // Check if user already voted
-            var existingVote = await _context.Votes
-                .FirstOrDefaultAsync(v => v.UserId == userId &&
-                    v.QuestionId == dto.QuestionId &&
-                    v.AnswerId == dto.AnswerId);
+            var existingVote = await _voteRepository.GetVoteAsync(userId, dto.QuestionId, dto.AnswerId);
 
             if (existingVote != null)
             {
                 // If same vote type, remove the vote
                 if (existingVote.Type == dto.Type)
                 {
-                    _context.Votes.Remove(existingVote);
+                    _voteRepository.Remove(existingVote);
                     await UpdateVoteCount(dto.QuestionId, dto.AnswerId, -(int)existingVote.Type);
-                    await _context.SaveChangesAsync();
+                    await _voteRepository.SaveChangesAsync();
                     _logger.LogInformation("Vote removed by user {UserId}", userId);
                     return (true, "Vote removed");
                 }
@@ -48,8 +52,9 @@ public class VoteService : IVoteService
                     // Change vote type
                     var oldVoteValue = (int)existingVote.Type;
                     existingVote.Type = dto.Type;
+                    _voteRepository.Update(existingVote);
                     await UpdateVoteCount(dto.QuestionId, dto.AnswerId, (int)dto.Type - oldVoteValue);
-                    await _context.SaveChangesAsync();
+                    await _voteRepository.SaveChangesAsync();
                     _logger.LogInformation("Vote updated by user {UserId}", userId);
                     return (true, "Vote updated");
                 }
@@ -65,9 +70,9 @@ public class VoteService : IVoteService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.Votes.Add(vote);
+            await _voteRepository.AddAsync(vote);
             await UpdateVoteCount(dto.QuestionId, dto.AnswerId, (int)dto.Type);
-            await _context.SaveChangesAsync();
+            await _voteRepository.SaveChangesAsync();
 
             _logger.LogInformation("Vote created by user {UserId}", userId);
             return (true, "Vote recorded successfully");
@@ -85,14 +90,12 @@ public class VoteService : IVoteService
         {
             if (questionId.HasValue)
             {
-                var question = await _context.Questions.FindAsync(questionId.Value);
-                return question?.VoteCount ?? 0;
+                return await _voteRepository.GetQuestionVoteCountAsync(questionId.Value);
             }
 
             if (answerId.HasValue)
             {
-                var answer = await _context.Answers.FindAsync(answerId.Value);
-                return answer?.VoteCount ?? 0;
+                return await _voteRepository.GetAnswerVoteCountAsync(answerId.Value);
             }
 
             return 0;
@@ -108,10 +111,8 @@ public class VoteService : IVoteService
     {
         try
         {
-            return await _context.Votes
-                .AnyAsync(v => v.UserId == userId &&
-                    v.QuestionId == questionId &&
-                    v.AnswerId == answerId);
+            var vote = await _voteRepository.GetVoteAsync(userId, questionId, answerId);
+            return vote != null;
         }
         catch (Exception ex)
         {
@@ -124,19 +125,23 @@ public class VoteService : IVoteService
     {
         if (questionId.HasValue)
         {
-            var question = await _context.Questions.FindAsync(questionId.Value);
+            var question = await _questionRepository.GetByIdAsync(questionId.Value);
             if (question != null)
             {
                 question.VoteCount += delta;
+                _questionRepository.Update(question);
+                await _questionRepository.SaveChangesAsync();
             }
         }
 
         if (answerId.HasValue)
         {
-            var answer = await _context.Answers.FindAsync(answerId.Value);
+            var answer = await _answerRepository.GetByIdAsync(answerId.Value);
             if (answer != null)
             {
                 answer.VoteCount += delta;
+                _answerRepository.Update(answer);
+                await _answerRepository.SaveChangesAsync();
             }
         }
     }

@@ -42,7 +42,8 @@ public class QuestionsController : ControllerBase
             return BadRequest(new { message = result.Message });
         }
 
-        return Ok(new { message = result.Message, id = result.Question!.Id });
+        // Changed 'id' to 'questionId' to match the JavaScript expectation
+        return Ok(new { message = result.Message, questionId = result.Question!.Id });
     }
 
     [HttpPut("{id}")]

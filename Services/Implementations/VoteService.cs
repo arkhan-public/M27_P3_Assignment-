@@ -1,4 +1,4 @@
-using QAWebApp.DTOs;
+﻿using QAWebApp.DTOs;
 using QAWebApp.Models;
 using QAWebApp.Repositories.Interfaces;
 using QAWebApp.Services.Interfaces;
@@ -33,6 +33,30 @@ public class VoteService : IVoteService
                 return (false, "Vote must be associated with a question or answer");
             }
 
+            // Check if user is trying to vote on their own question
+            if (dto.QuestionId.HasValue)
+            {
+                var question = await _questionRepository.GetByIdAsync(dto.QuestionId.Value);
+                if (question != null && question.UserId == userId)
+                {
+                    _logger.LogWarning("User {UserId} attempted to vote on their own question {QuestionId}", 
+                        userId, dto.QuestionId.Value);
+                    return (false, "You cannot vote on your own question");
+                }
+            }
+
+            // Check if user is trying to vote on their own answer
+            if (dto.AnswerId.HasValue)
+            {
+                var answer = await _answerRepository.GetByIdAsync(dto.AnswerId.Value);
+                if (answer != null && answer.UserId == userId)
+                {
+                    _logger.LogWarning("User {UserId} attempted to vote on their own answer {AnswerId}", 
+                        userId, dto.AnswerId.Value);
+                    return (false, "You cannot vote on your own answer");
+                }
+            }
+
             // Check if user already voted
             var existingVote = await _voteRepository.GetVoteAsync(userId, dto.QuestionId, dto.AnswerId);
 
@@ -43,8 +67,8 @@ public class VoteService : IVoteService
                 {
                     _voteRepository.Remove(existingVote);
                     await UpdateVoteCount(dto.QuestionId, dto.AnswerId, -(int)existingVote.Type);
-                    await _voteRepository.SaveChangesAsync();
-                    _logger.LogInformation("Vote removed by user {UserId}", userId);
+                    _logger.LogInformation("Vote removed by user {UserId}. Vote count adjusted by {Delta}", 
+                        userId, -(int)existingVote.Type);
                     return (true, "Vote removed");
                 }
                 else
@@ -53,10 +77,15 @@ public class VoteService : IVoteService
                     var oldVoteValue = (int)existingVote.Type;
                     existingVote.Type = dto.Type;
                     _voteRepository.Update(existingVote);
-                    await UpdateVoteCount(dto.QuestionId, dto.AnswerId, (int)dto.Type - oldVoteValue);
-                    await _voteRepository.SaveChangesAsync();
-                    _logger.LogInformation("Vote updated by user {UserId}", userId);
-                    return (true, "Vote updated");
+                    
+                    // Calculate the delta: new vote - old vote
+                    // Example: changing from -1 to +1 = +1 - (-1) = +2
+                    var delta = (int)dto.Type - oldVoteValue;
+                    await UpdateVoteCount(dto.QuestionId, dto.AnswerId, delta);
+                    
+                    _logger.LogInformation("Vote changed by user {UserId} from {OldVote} to {NewVote}. Delta: {Delta}", 
+                        userId, oldVoteValue, (int)dto.Type, delta);
+                    return (true, "Vote changed successfully");
                 }
             }
 
@@ -72,9 +101,9 @@ public class VoteService : IVoteService
 
             await _voteRepository.AddAsync(vote);
             await UpdateVoteCount(dto.QuestionId, dto.AnswerId, (int)dto.Type);
-            await _voteRepository.SaveChangesAsync();
 
-            _logger.LogInformation("Vote created by user {UserId}", userId);
+            _logger.LogInformation("Vote created by user {UserId}. Type: {VoteType}, Delta: {Delta}", 
+                userId, dto.Type, (int)dto.Type);
             return (true, "Vote recorded successfully");
         }
         catch (Exception ex)
@@ -118,6 +147,20 @@ public class VoteService : IVoteService
         {
             _logger.LogError(ex, "Error checking user vote");
             return false;
+        }
+    }
+
+    public async Task<VoteType?> GetUserVoteTypeAsync(int userId, int? questionId, int? answerId)
+    {
+        try
+        {
+            var vote = await _voteRepository.GetVoteAsync(userId, questionId, answerId);
+            return vote?.Type;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting user vote type");
+            return null;
         }
     }
 

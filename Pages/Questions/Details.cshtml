@@ -24,9 +24,10 @@ else
 
                     <div class="row">
                         <div class="col-md-1 text-center vote-buttons">
-                            <button class="btn btn-link" onclick="vote(@Model.Question.Id, null, 1)">▲</button>
+                            @* Add data-owner attribute and id for styling *@
+                            <button id="question-upvote" class="btn btn-link vote-btn" data-owner="@Model.Question.UserId" onclick="vote(@Model.Question.Id, null, 1)">▲</button>
                             <strong id="question-votes">@Model.Question.VoteCount</strong>
-                            <button class="btn btn-link" onclick="vote(@Model.Question.Id, null, -1)">▼</button>
+                            <button id="question-downvote" class="btn btn-link vote-btn" data-owner="@Model.Question.UserId" onclick="vote(@Model.Question.Id, null, -1)">▼</button>
                         </div>
                         <div class="col-md-11">
                             <p style="white-space: pre-wrap;">@Model.Question.Body</p>
@@ -96,9 +97,10 @@ else
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-1 text-center vote-buttons">
-                                <button class="btn btn-link" onclick="vote(null, @answer.Id, 1)">▲</button>
+                                @* Add data-owner attribute and id for styling *@
+                                <button id="answer-@answer.Id-upvote" class="btn btn-link vote-btn" data-owner="@answer.UserId" onclick="vote(null, @answer.Id, 1)">▲</button>
                                 <strong id="answer-@answer.Id-votes">@answer.VoteCount</strong>
-                                <button class="btn btn-link" onclick="vote(null, @answer.Id, -1)">▼</button>
+                                <button id="answer-@answer.Id-downvote" class="btn btn-link vote-btn" data-owner="@answer.UserId" onclick="vote(null, @answer.Id, -1)">▼</button>
                                 @if (answer.IsAccepted)
                                 {
                                     <div class="text-success mt-2">✓</div>

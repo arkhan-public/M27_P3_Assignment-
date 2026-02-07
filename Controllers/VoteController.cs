@@ -44,4 +44,25 @@ public class VoteController : ControllerBase
 
         return Ok(new { message = result.Message });
     }
+
+    // New endpoint to get user's current vote
+    [HttpGet("status")]
+    public async Task<IActionResult> GetVoteStatus([FromQuery] int? questionId, [FromQuery] int? answerId)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim))
+        {
+            return Unauthorized();
+        }
+
+        var userId = int.Parse(userIdClaim);
+        var voteType = await _voteService.GetUserVoteTypeAsync(userId, questionId, answerId);
+
+        return Ok(new 
+        { 
+            hasVoted = voteType.HasValue,
+            voteType = voteType?.ToString(),
+            voteValue = (int?)voteType
+        });
+    }
 }

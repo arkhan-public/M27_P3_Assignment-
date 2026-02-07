@@ -5,23 +5,118 @@
     // Page Data (will be set from Razor Page)
     let pageData = window.questionDetailsData || {};
 
+    // Store current vote states
+    let userVotes = {
+        question: null, // null, 1, or -1
+        answers: {} // answerId: null, 1, or -1
+    };
+
+    // Load user's current votes
+    async function loadUserVotes() {
+        const token = getToken();
+        if (!token) return;
+
+        try {
+            // Load question vote status
+            const questionId = pageData.questionId;
+            if (questionId) {
+                const response = await fetch(`/api/vote/status?questionId=${questionId}`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    userVotes.question = data.hasVoted ? data.voteValue : null;
+                    updateVoteButtons('question', questionId, userVotes.question);
+                }
+            }
+
+            // Load answer vote statuses
+            document.querySelectorAll('[data-answer-id]').forEach(async (elem) => {
+                const answerId = elem.getAttribute('data-answer-id');
+                const response = await fetch(`/api/vote/status?answerId=${answerId}`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    userVotes.answers[answerId] = data.hasVoted ? data.voteValue : null;
+                    updateVoteButtons('answer', answerId, userVotes.answers[answerId]);
+                }
+            });
+        } catch (error) {
+            console.error('Error loading vote statuses:', error);
+        }
+    }
+
+    // Update vote button states
+    // Updated: Highlight active vote, but DON'T disable it (allow toggling)
+    function updateVoteButtons(type, id, currentVote) {
+        let upvoteBtn, downvoteBtn;
+        
+        if (type === 'question') {
+            upvoteBtn = document.getElementById('question-upvote');
+            downvoteBtn = document.getElementById('question-downvote');
+        } else {
+            upvoteBtn = document.getElementById(`answer-${id}-upvote`);
+            downvoteBtn = document.getElementById(`answer-${id}-downvote`);
+        }
+
+        if (!upvoteBtn || !downvoteBtn) return;
+
+        // Reset styles - Keep buttons ENABLED
+        upvoteBtn.classList.remove('active-vote');
+        downvoteBtn.classList.remove('active-vote');
+
+        if (currentVote === 1) {
+            // Highlight upvote button (but keep it clickable to remove vote)
+            upvoteBtn.classList.add('active-vote');
+        } else if (currentVote === -1) {
+            // Highlight downvote button (but keep it clickable to remove vote)
+            downvoteBtn.classList.add('active-vote');
+        }
+    }
+
+    // Initialize vote button states based on ownership
+    function initializeVoteButtons() {
+        const token = getToken();
+        if (!token) return;
+
+        const currentUserId = Number(localStorage.getItem('userId'));
+        if (!currentUserId) return;
+
+        // Disable voting buttons ONLY for owned content
+        document.querySelectorAll('.vote-btn').forEach(btn => {
+            const ownerId = Number(btn.getAttribute('data-owner'));
+            
+            if (ownerId === currentUserId) {
+                btn.classList.add('disabled-vote');
+                btn.style.opacity = '0.4';
+                btn.style.cursor = 'not-allowed';
+                btn.style.pointerEvents = 'none';
+            }
+        });
+
+        // Load and apply user's current votes
+        loadUserVotes();
+    }
+
     function initializeOwnershipControls() {
         const token = getToken();
         const currentUserId = Number(localStorage.getItem('userId'));
         const questionOwnerId = pageData.questionOwnerId || 0;
 
-        // Show question-level controls if logged in and owner
         if (token && currentUserId === questionOwnerId) {
             const editBtn = document.getElementById('editQuestionBtn');
             const deleteBtn = document.getElementById('deleteQuestionBtn');
             if (editBtn) editBtn.style.display = 'inline-block';
             if (deleteBtn) deleteBtn.style.display = 'inline-block';
 
-            // Show accept buttons for answers
             document.querySelectorAll('[id^="accept-"]').forEach(btn => btn.style.display = 'inline-block');
         }
 
-        // Show per-answer Edit/Delete for answer owners using data-owner attributes
         document.querySelectorAll('[id^="editAnswer-"]').forEach(btn => {
             const ownerId = Number(btn.getAttribute('data-owner'));
             const parts = btn.id.split('-');
@@ -177,6 +272,11 @@
                 location.reload();
             } else if (response.status === 401) {
                 window.location.href = '/Login';
+            } else {
+                const data = await response.json();
+                if (data.message) {
+                    alert(data.message);
+                }
             }
         } catch (error) {
             console.error('Error voting:', error);
@@ -194,11 +294,9 @@
         const body = bodyElement.value.trim();
         const questionId = pageData.questionId || 0;
 
-        // Clear previous errors
         errorElement.classList.add('d-none');
         errorElement.textContent = '';
 
-        // Validation
         if (!body || body.length < 20) {
             errorElement.textContent = 'Answer must be at least 20 characters';
             errorElement.classList.remove('d-none');
@@ -211,8 +309,6 @@
             console.error('Question ID is missing or invalid:', questionId);
             return;
         }
-
-        console.log('Submitting answer:', { body: body.substring(0, 50) + '...', questionId });
 
         try {
             const response = await fetch('/api/answers', {
@@ -227,17 +323,12 @@
                 })
             });
 
-            console.log('Response status:', response.status);
-
             if (response.ok) {
-                console.log('Answer posted successfully, reloading page...');
                 location.reload();
             } else if (response.status === 401) {
-                console.error('Unauthorized - redirecting to login');
                 window.location.href = '/Login';
             } else {
                 const data = await response.json().catch(() => ({ message: 'Failed to post answer' }));
-                console.error('Error response:', data);
                 errorElement.textContent = data.message || 'Failed to post answer';
                 errorElement.classList.remove('d-none');
             }
@@ -336,14 +427,12 @@
         }
     };
 
-    // Show edit form for comment
     window.showEditCommentForm = function (commentId) {
         if (!getToken()) {
             window.location.href = '/Login';
             return;
         }
 
-        // Hide the comment display and show the edit form
         const displayDiv = document.querySelector('.comment-display-' + commentId);
         const editForm = document.querySelector('.comment-edit-form-' + commentId);
         
@@ -351,20 +440,16 @@
         if (editForm) editForm.style.display = 'block';
     };
 
-    // Cancel editing comment
     window.cancelEditComment = function (commentId) {
-        // Show the comment display and hide the edit form
         const displayDiv = document.querySelector('.comment-display-' + commentId);
         const editForm = document.querySelector('.comment-edit-form-' + commentId);
         
         if (displayDiv) displayDiv.style.display = 'flex';
         if (editForm) editForm.style.display = 'none';
         
-        // Reset the input value to original
         const input = document.getElementById('edit-comment-text-' + commentId);
         const originalText = document.querySelector('.comment-body-' + commentId)?.innerText || '';
         if (input) {
-            // Extract just the comment body (before the username)
             const bodyMatch = originalText.match(/^(.+?) - /);
             if (bodyMatch) {
                 input.value = bodyMatch[1];
@@ -372,7 +457,6 @@
         }
     };
 
-    // Update comment with new text
     window.updateComment = async function (commentId) {
         if (!getToken()) {
             window.location.href = '/Login';
@@ -417,6 +501,7 @@
     document.addEventListener('DOMContentLoaded', function () {
         console.log('Initializing question details page...');
         console.log('Page data:', pageData);
+        initializeVoteButtons();
         initializeOwnershipControls();
         attachAnswerDeleteHandlers();
         attachQuestionDeleteHandler();
